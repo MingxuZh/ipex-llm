@@ -52,6 +52,7 @@ RUN export PATH=~/anaconda3/bin/:${PATH} && \
 # COPY ipex-cpu /opt/installs/ipex-cpu
 RUN cd /opt/installs && \
     source /root/anaconda3/bin/activate llm && \
+    git clone https://github.com/MingxuZh/ipex-llm && \
     pip install ipex-llm/intel_extension_for_pytorch-2.1.0+gitfb7a74a-cp39-cp39-linux_x86_64.whl
 
 # Build TPP extension for Pytorch
