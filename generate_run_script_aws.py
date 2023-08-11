@@ -155,11 +155,11 @@ def generate_commands(yml_file,mode,extra_kmp):
                 for dtype in data['modelargs'][mode]['dtype']:
 
                     lines.append(f"mkdir {data['modelargs'][mode]['outdir']}")
-                    lines.append(f"python {data['modelargs'][mode]['scriptname']} --ipex-smooth-quant --lambada --output-dir {data['modelargs'][mode]['outdir']} --jit --int8 -m {model_id}")
+                    lines.append(f"python {data['modelargs'][mode]['scriptname']} --ipex-smooth-quant --lambada --output-dir {data['modelargs'][mode]['outdir']} --jit --int8-bf16-mixed -m {model_id}")
 
                     for input_token in data['modelargs'][mode]['inputtokens']:
                         lines.append(f"nohup bash /root/workspace/get_mem.sh >> $log_dir/mem-usage-llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}_.log 2>&1 || true &")
-                        lines.append(f"numactl -m 0 -N 0 python {data['modelargs'][mode]['scriptname']} -m {model_id} --quantized-model-path {data['modelargs'][mode]['bestpath']} --benchmark --input-tokens {input_token} --dtype {dtype} --jit --token-latency \
+                        lines.append(f"numactl -m 0 -N 0 python {data['modelargs'][mode]['scriptname']} -m {model_id} --quantized-model-path {data['modelargs'][mode]['bestpath']} --benchmark --input-tokens {input_token} --jit --int8-bf16-mixed --token-latency \
                                     2>&1 | tee -a $log_dir/llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
                         lines.append(f"collect_perf_logs_llm llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
 
@@ -177,7 +177,7 @@ def generate_commands(yml_file,mode,extra_kmp):
                         for input_token in data['modelargs'][mode]['inputtokens']:
                         # lines.append(f"python {data['modelargs'][mode]['scriptname']} --ipex-weight-only-quantization --lambada --output-dir {data['modelargs'][mode]['outdir']} --jit --int8 -m {model_id}")
                             lines.append(f"nohup bash /root/workspace/get_mem.sh >> $log_dir/mem-usage-llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}_.log 2>&1 || true &")
-                            lines.append(f"numactl -m 0 -N 0 python {data['modelargs'][mode]['scriptname']} -m {model_id} --quantized-model-path {data['modelargs'][mode]['bestpath']} --benchmark --input-tokens {input_token} --dtype {dtype} --jit --token-latency \
+                            lines.append(f"numactl -m 0 -N 0 python {data['modelargs'][mode]['scriptname']} -m {model_id} --quantized-model-path {data['modelargs'][mode]['bestpath']} --benchmark --input-tokens {input_token} --int8 --jit --token-latency \
                                     2>&1 | tee -a $log_dir/llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
                             lines.append(f"collect_perf_logs_llm llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
 
