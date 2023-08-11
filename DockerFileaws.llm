@@ -1,0 +1,86 @@
+# How to build: 
+#   docker build ./ -f DockerFile.llm -t llm_centos8:latest
+# If you need to use proxy, please use the following command
+#   docker build ./ --build-arg http_proxy=${http_proxy} --build-arg https_proxy=${http_proxy} -f DockerFile.llm -t llm_centos8:latest
+
+FROM centos:centos8
+WORKDIR /opt/installs/
+RUN dnf --disablerepo '*' --enablerepo=extras swap centos-linux-repos centos-stream-repos -y && \
+    yum update -y && yum install -y unzip which zip vim wget  && \
+    yum -y install epel-release && \
+    yum -y install git openssl-devel make gcc-c++ automake autoconf libtool python3 python3-pip \
+         graphviz numactl* mesa-libGL && \
+    yum -y groupinstall "Development Tools" && \
+    yum -y install gcc-toolset-11* cmake expect libfabric && \
+    yum -y install cmake expect libfabric && \
+    yum -y install libsndfile && \
+    yum -y install jq
+
+# Build LLVM for IPEX Semi-compiler
+RUN cd /opt/installs && git clone --depth 1 --branch llvmorg-13.0.0 https://github.com/llvm/llvm-project && \
+    cd llvm-project && mkdir build && cd build && \
+    cmake ../llvm -DCMAKE_INSTALL_PREFIX=/opt/llvm -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_ENABLE_TERMINFO=OFF -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=0" && \
+    make install -j && \
+    ln -s /opt/llvm/bin/llvm-config /usr/local/bin/llvm-config-13
+
+# Prepare the Conda environment
+RUN cd /opt/installs && wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O anaconda3.sh && \
+    chmod +x anaconda3.sh && \
+    ./anaconda3.sh -b -p ~/anaconda3 && \
+    rm ./anaconda3.sh
+
+ENV PATH=~/anaconda3/bin/:${PATH}
+
+RUN export PATH=~/anaconda3/bin/:${PATH} && \
+    conda config --add channels intel && \
+    conda install -c intel -y intel-openmp && \
+    #conda install -y gcc==12.3 gxx==12.3 cxx-compiler -c conda-forge && \
+    conda create -yn llm python=3.9 && \
+    source activate llm && \
+    pip install pip && \
+    pip install lark-parser hypothesis tornado tqdm  Pillow  yacs opencv-python pycocotools cityscapesscripts unidecode sentencepiece inflect \
+	    librosa==0.8.1 toml soundfile==0.10.3.post1 ipdb sox tensorboard==2.0.0 jinja2 psutil pytest scikit-learn onnx && \
+    conda config --add channels intel && \
+    conda install -y openblas  && \
+    conda install gperftools -c conda-forge -y && \
+    pip install intel-openmp matplotlib typing_extensions future six requests dataclasses \
+        ninja pyyaml setuptools cmake cffi typing intel-openmp mkl mkl-include numpy cpuid datasets pip install sympy && \
+    pip3 install https://download.pytorch.org/whl/nightly/cpu/torch-2.1.0.dev20230711%2Bcpu-cp39-cp39-linux_x86_64.whl --no-deps
+    
+
+# Build IPEX
+COPY ipex-cpu /opt/installs/ipex-cpu
+RUN cd /opt/installs && \
+    source /root/anaconda3/bin/activate llm && \
+    pip install ipex-llm/intel_extension_for_pytorch-2.1.0+gitfb7a74a-cp39-cp39-linux_x86_64.whl
+
+# Build TPP extension for Pytorch
+RUN source /root/anaconda3/bin/activate llm && \
+    pip install accelerate protobuf==3.20.3 numpy==1.23.5 && \
+    cd /opt/installs && git clone -b gpt_infer --depth 1 https://github.com/libxsmm/tpp-pytorch-extension.git && \
+    cd /opt/installs/tpp-pytorch-extension && git submodule update --init && \
+    source /opt/rh/gcc-toolset-11/enable && \
+    python setup.py install
+
+# Build neural-compressor only for int8
+RUN source /root/anaconda3/bin/activate llm && \
+    pip install neural-compressor==2.2
+
+# Build Transformer
+COPY transformers /opt/installs/transformers
+RUN source /root/anaconda3/bin/activate llm  && \
+    pip install transformers==4.31.0 && \
+    pip install --upgrade huggingface_hub && \
+    huggingface-cli login --token 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
+
+RUN /root/anaconda3/bin/conda clean -y -all && \
+    yum clean all && \
+    rm -rf /opt/installs/
+
+ENV BASH_ENV=/opt/.bash_profile
+# Env config
+ENV KMP_BLOCKTIME=1
+ENV KMP_AFFINITY="granularity=fine,compact,1,0"
+# IOMP & TcMalloc
+ENV LD_PRELOAD=/root/anaconda3/envs/llm/lib/libiomp5.so:/root/anaconda3/envs/llm/lib/libtcmalloc.so:${LD_PRELOAD}
+WORKDIR /root/workspace/
