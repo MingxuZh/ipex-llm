@@ -19,7 +19,7 @@ launcher:
 modelargs:
   default:
     modelid:
-      - EleutherAI/gpt-j-6B
+      # - EleutherAI/gpt-j-6B
       - meta-llama/Llama-2-7b-hf
       - facebook/opt-6.7b  
     scriptname: run_generation.py
@@ -29,14 +29,13 @@ modelargs:
       - bfloat16
     inputtokens:
       - 32
-      - 128
-      - 1024
-      - 2016
-      - 2048
+      # - 128
+      # - 1024
+      # - 2016
+      # - 2048
     maxnewtokens: 32
     prompt: None
     greedy: 
-      - true
       - false
     ipex: true
     jit: true
@@ -75,10 +74,10 @@ modelargs:
       - int8
     inputtokens:
       - 32
-      - 128
-      - 1024
-      - 2016
-      - 2048
+      # - 128
+      # - 1024
+      # - 2016
+      # - 2048
     maxnewtokens: 32
     outdir: "/root/workspace/ipex-llm/int8_gpt"
     bestpath: "/root/workspace/ipex-llm/int8_gpt/best_model.pt"
@@ -102,17 +101,16 @@ modelargs:
       - int8
     inputtokens:
       - 32
-      - 128
-      - 1024
-      - 2016
-      - 2048
-      - 4096
+      # - 128
+      # - 1024
+      # - 2016
+      # - 2048
+      # - 4096
     maxnewtokens: 32
     outdir: "/root/workspace/ipex-llm/int8_llama"
     bestpath: "/root/workspace/ipex-llm/int8_llama/best_model.pt"
     prompt: None
     greedy: 
-      - true
       - false
     ipex: true
     jit: true
@@ -130,16 +128,15 @@ modelargs:
       - int8
     inputtokens:
       - 32
-      - 128
-      - 1024
-      - 2016
-      - 2048
+      # - 128
+      # - 1024
+      # - 2016
+      # - 2048
     maxnewtokens: 32
     outdir: "/root/workspace/ipex-llm/int8_gpt_woq"
     bestpath: "/root/workspace/ipex-llm/int8_gpt_woq/best_model.pt"
     prompt: None
     greedy: 
-      - true
       - false
     ipex: true
     jit: true
@@ -157,17 +154,16 @@ modelargs:
       - int8
     inputtokens:
       - 32
-      - 128
-      - 1024
-      - 2016
-      - 2048
-      - 4096
+      # - 128
+      # - 1024
+      # - 2016
+      # - 2048
+      # - 4096
     maxnewtokens: 32
     outdir: "/root/workspace/ipex-llm/int8_llama_woq"
     bestpath: "/root/workspace/ipex-llm/int8_llama_woq/best_model.pt"
     prompt: None
     greedy: 
-      - true
       - false
     ipex: true
     jit: true
