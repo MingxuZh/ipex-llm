@@ -19,11 +19,9 @@ docker_name=forllmaws
 echo "docker_name: ${docker_name}"
 IMAGE_NAME=${docker_name}
 ipex_branch=main
-NODE_PROXY=http://proxy-dmz.intel.com:912
+
 
 
 sudo docker build --no-cache \
-             --build-arg http_proxy=$NODE_PROXY \
-             --build-arg https_proxy=$NODE_PROXY \
              -t $IMAGE_NAME \
              -f DockerFileaws.llm .

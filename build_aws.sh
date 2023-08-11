@@ -9,8 +9,8 @@ lscpu
 
 cd /home/ubuntu/workspace
 
-export http_proxy=http://proxy-dmz.intel.com:912
-export https_proxy=http://proxy-dmz.intel.com:912
+# export http_proxy=http://proxy-dmz.intel.com:912
+# export https_proxy=http://proxy-dmz.intel.com:912
 
 git clone https://github.com/MingxuZh/ipex-llm
 cd /home/ubuntu/workspace/ipex-llm
