@@ -309,7 +309,7 @@ if args.ipex_smooth_quant:
     from intel_extension_for_pytorch.quantization import prepare, convert
 
     qconfig = ipex.quantization.get_smooth_quant_qconfig_mapping()
-    prepared_model = prepare(user_model.eval(), qconfig, example_inputs=example_inputs, inplace=True)
+    prepared_model = prepare(user_model.eval(), qconfig, example_inputs=example_inputs)
     with torch.no_grad():
         for i, (
             (input_ids, attention_mask, position_ids, past_key_values),
@@ -384,6 +384,12 @@ if args.ipex_weight_only_quantization:
         lowp_mode=lowp_mode
     )
     with torch.no_grad():
+        convert_model = convert_woq(user_model.eval(), qconfig)
+    with torch.no_grad(), torch.autocast(
+        device_type=args.device,
+        enabled=amp_enabled,
+        dtype=amp_dtype if amp_enabled else None,
+    ):
         convert_model = convert_woq(user_model.eval(), qconfig)
         self_jit = torch.jit.trace(convert_model.eval(), example_inputs, strict=False)
         self_jit = torch.jit.freeze(self_jit.eval())
