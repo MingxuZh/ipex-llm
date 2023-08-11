@@ -17,32 +17,32 @@ launcher:
   numactlN: 0
   numactlM: 0
 modelargs:
-  default:
-    modelid:
+  # default:
+  #   modelid:
       # - EleutherAI/gpt-j-6B
-      - meta-llama/Llama-2-7b-hf
-      - facebook/opt-6.7b  
-    scriptname: run_generation.py
-    device:
-      - cpu
-    dtype:
-      - bfloat16
-    inputtokens:
-      - 32
+      # - meta-llama/Llama-2-7b-hf
+      # - facebook/opt-6.7b  
+    # scriptname: run_generation.py
+    # device:
+    #   - cpu
+    # dtype:
+    #   - bfloat16
+    # inputtokens:
+    #   - 32
       # - 128
       # - 1024
       # - 2016
       # - 2048
-    maxnewtokens: 32
-    prompt: None
-    greedy: 
-      - false
-    ipex: true
-    jit: true
-    numiter: 50
-    numwarmup: 5
-    batchsize: 1
-    tokenlatency: true
+    # maxnewtokens: 32
+    # prompt: None
+    # greedy: 
+    #   - false
+    # ipex: true
+    # jit: true
+    # numiter: 50
+    # numwarmup: 5
+    # batchsize: 1
+    # tokenlatency: true
   llama7:
     modelid:
       - meta-llama/Llama-2-7b-hf
