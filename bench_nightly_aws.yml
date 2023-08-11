@@ -80,8 +80,8 @@ modelargs:
       - 2016
       - 2048
     maxnewtokens: 32
-    outdir: "/home/ubuntu/workspace/ipex-llm/int8_gpt"
-    bestpath: "/home/ubuntu/workspace/ipex-llm/int8_gpt/best_model.pt"
+    outdir: "/root/workspace/ipex-llm/int8_gpt"
+    bestpath: "/root/workspace/ipex-llm/int8_gpt/best_model.pt"
     prompt: None
     greedy: 
       - true
@@ -108,8 +108,8 @@ modelargs:
       - 2048
       - 4096
     maxnewtokens: 32
-    outdir: "/home/ubuntu/workspace/ipex-llm/int8_llama"
-    bestpath: "/home/ubuntu/workspace/ipex-llm/int8_llama/best_model.pt"
+    outdir: "/root/workspace/ipex-llm/int8_llama"
+    bestpath: "/root/workspace/ipex-llm/int8_llama/best_model.pt"
     prompt: None
     greedy: 
       - true
@@ -135,8 +135,8 @@ modelargs:
       - 2016
       - 2048
     maxnewtokens: 32
-    outdir: "/home/ubuntu/workspace/ipex-llm/int8_gpt_woq"
-    bestpath: "/home/ubuntu/workspace/ipex-llm/int8_gpt_woq/best_model.pt"
+    outdir: "/root/workspace/ipex-llm/int8_gpt_woq"
+    bestpath: "/root/workspace/ipex-llm/int8_gpt_woq/best_model.pt"
     prompt: None
     greedy: 
       - true
@@ -163,8 +163,8 @@ modelargs:
       - 2048
       - 4096
     maxnewtokens: 32
-    outdir: "/home/ubuntu/workspace/ipex-llm/int8_llama_woq"
-    bestpath: "/home/ubuntu/workspace/ipex-llm/int8_llama_woq/best_model.pt"
+    outdir: "/root/workspace/ipex-llm/int8_llama_woq"
+    bestpath: "/root/workspace/ipex-llm/int8_llama_woq/best_model.pt"
     prompt: None
     greedy: 
       - true

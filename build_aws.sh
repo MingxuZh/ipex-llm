@@ -17,7 +17,13 @@ cd /home/ubuntu/workspace/ipex-llm
 
 sh /home/ubuntu/workspace/ipex-llm/build_awsllm.sh
 
-docker run -it --privileged --rm forllmaws
+sudo groupadd docker
+
+sudo gpasswd -a $USER docker
+
+newgrp docker
+
+docker run -it --privileged --rm -v /home/ubuntu/workspace:/root/workspace forllmaws
 
 source activate llm
 
