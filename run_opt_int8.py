@@ -351,7 +351,7 @@ if args.ipex_weight_only_quantization:
     example_inputs = (
         input_ids.unsqueeze(0),
         attention_mask.unsqueeze(0),
-        position_ids.unsqueeze(0),
+        # position_ids.unsqueeze(0),
         tuple(global_past_key_value),
     )
 
