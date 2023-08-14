@@ -1,0 +1,86 @@
+{
+    "fms": {
+        "606a0": {
+            "platform": "icelake",
+            "stepping": "a0"
+        },
+        "606a5": {
+            "platform": "icelake",
+            "stepping": "c0"
+        },
+        "606a6": {
+            "platform": "icelake",
+            "stepping": "d0"
+        },
+        "606a4": {
+            "platform": "icelake",
+            "stepping": "l0"
+        },
+        "606c0": {
+            "platform": "icelake-d",
+            "stepping": "a0"
+        },
+        "606c1": {
+            "platform": "icelake-d",
+            "stepping": "b0"
+        },
+        "806f8": {
+            "platform": "sapphirerapids",
+            "stepping": "e5"
+        },
+        "806f7": {
+            "platform": "sapphirerapids",
+            "stepping": "e4"
+        },
+        "806f6": {
+            "platform": "sapphirerapids",
+            "stepping": "e3"
+        },
+        "806f5": {
+            "platform": "sapphirerapids",
+            "stepping": "e1"
+        },
+        "806f4": {
+            "platform": "sapphirerapids",
+            "stepping": "e0"
+        },
+        "806f3": {
+            "platform": "sapphirerapids",
+            "stepping": "d0"
+        },
+        "806f2": {
+            "platform": "sapphirerapids",
+            "stepping": "c0"
+        },
+        "806f1": {
+            "platform": "sapphirerapids",
+            "stepping": "b0"
+        },
+        "806f0": {
+            "platform": "sapphirerapids",
+            "stepping": "a0"
+        },
+        "c06f1": {
+            "platform": "emeraldrapids",
+            "stepping": "a0"
+        },
+        "a06d0": {
+            "platform": "graniterapids",
+            "stepping": "a1"
+        },
+        "a06f0": {
+            "platform": "sierraforest",
+            "stepping": "a0"
+        },
+        "a06f1": {
+            "platform": "sierraforest",
+            "stepping": "b0"
+        }
+    },
+    "available_platform_config": [
+        "sapphirerapids",
+        "emeraldrapids",
+        "graniterapids",
+        "sierraforest"
+    ]
+}
