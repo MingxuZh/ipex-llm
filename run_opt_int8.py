@@ -265,7 +265,7 @@ def calib_func(prepared_model):
         prepared_model(
             input_ids=input_ids,
             attention_mask=attention_mask,
-            position_ids=position_ids,
+            # position_ids=position_ids,
             past_key_values=past_key_values,
         )
 
