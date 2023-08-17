@@ -17,11 +17,23 @@ RUN dnf --disablerepo '*' --enablerepo=extras swap centos-linux-repos centos-str
     yum -y install jq
 
 # Build LLVM for IPEX Semi-compiler
-RUN cd /opt/installs && git clone --depth 1 --branch llvmorg-13.0.0 https://github.com/llvm/llvm-project && \
-    cd llvm-project && mkdir build && cd build && \
-    cmake ../llvm -DCMAKE_INSTALL_PREFIX=/opt/llvm -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_ENABLE_TERMINFO=OFF -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=0" && \
-    make install -j && \
-    ln -s /opt/llvm/bin/llvm-config /usr/local/bin/llvm-config-13
+RUN cd /opt/installs && rm -rf llvm-project && mkdir llvm-project && cd llvm-project && \
+    wget https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.6/cmake-16.0.6.src.tar.xz && \
+    wget https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.6/llvm-16.0.6.src.tar.xz && \
+    tar -xf cmake-16.0.6.src.tar.xz && mv cmake-16.0.6.src cmake && \
+    tar -xf llvm-16.0.6.src.tar.xz && mv llvm-16.0.6.src llvm && \
+    mkdir build && cd build && \
+    cmake ../llvm -DCMAKE_INSTALL_PREFIX=${PWD}/_install/llvm -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_INCLUDE_BENCHMARKS=OFF -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=0" && \
+    make install -j$(nproc) && \
+    echo ${CONDA_PREFIX} && \
+    ln -s ${PWD}/_install/llvm/bin/llvm-config ${CONDA_PREFIX}/bin/llvm-config-13 && \
+    cd ../../
+
+#RUN cd /opt/installs && git clone --depth 1 --branch llvmorg-13.0.0 https://github.com/llvm/llvm-project && \
+#    cd llvm-project && mkdir build && cd build && \
+#    cmake ../llvm -DCMAKE_INSTALL_PREFIX=/opt/llvm -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_INCLUDE_TESTS=OFF -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_ENABLE_TERMINFO=OFF -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=0" && \
+#    make install -j && \
+#    ln -s /opt/llvm/bin/llvm-config /usr/local/bin/llvm-config-13
 
 # Prepare the Conda environment
 RUN cd /opt/installs && wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O anaconda3.sh && \
@@ -53,7 +65,7 @@ RUN export PATH=~/anaconda3/bin/:${PATH} && \
 RUN cd /opt/installs && \
     source /root/anaconda3/bin/activate llm && \
     git clone https://github.com/MingxuZh/ipex-llm && \
-    pip install ipex-llm/intel_extension_for_pytorch-2.1.0+gitfb7a74a-cp39-cp39-linux_x86_64.whl
+    pip install ipex-llm/intel_extension_for_pytorch-2.1.0+gitf7b4066-cp39-cp39-linux_x86_64.whl
 
 # Build TPP extension for Pytorch
 RUN source /root/anaconda3/bin/activate llm && \
@@ -74,9 +86,30 @@ RUN source /root/anaconda3/bin/activate llm  && \
     pip install --upgrade huggingface_hub && \
     huggingface-cli login --token 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
 
+
+
+# For Deepspeed
+# oneccl
+RUN source /root/anaconda3/bin/activate llm && \
+    cd /opt/installs && \
+    git clone https://github.com/oneapi-src/oneCCL && cd oneCCL && \
+    rm -rf build /opt/install/oneCCL_install && mkdir build && cd build && \
+    cmake .. -DCMAKE_INSTALL_PREFIX=${HOME}/oneCCL_install && make -j$(nproc) install 
+
+# torch-ccl 
+RUN source /root/anaconda3/bin/activate llm && \
+    cd /opt/installs && \
+    pip install ipex-llm/oneccl_bind_pt-2.1.0+cpu-cp39-cp39-linux_x86_64.whl
+
+# Deepspeed
+RUN source /root/anaconda3/bin/activate llm && \
+    cd /opt/installs && \
+    pip install ipex-llm/deepspeed-0.10.0+e21231df-py3-none-any.whl
+
 RUN /root/anaconda3/bin/conda clean -y -all && \
     yum clean all && \
     rm -rf /opt/installs/
+
 
 ENV BASH_ENV=/opt/.bash_profile
 # Env config

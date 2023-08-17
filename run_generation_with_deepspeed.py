@@ -17,7 +17,6 @@ from transformers.utils import is_offline_mode
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
-    LlamaForCausalLM,
     AutoTokenizer,
     LlamaTokenizer,
 )
@@ -86,11 +85,23 @@ parser.add_argument("--ipex", action="store_true", help="ipex is not enabled now
 parser.add_argument(
     "--ipex-weight-only-quantization",
     action="store_true",
-    help="enable ipex WOQ optimization (int8 mix fp32)",
+    help="use ipex weight-only quantization",
+)
+parser.add_argument(
+    "--int8-bf16-mixed",
+    action="store_true",
+    help="by default it is int8-fp32 mixed, to enable int8 mixed amp bf16 (work on platforms like SPR)",
 )
 parser.add_argument("--jit", action="store_true")
 parser.add_argument("--print-memory", action="store_true")
 parser.add_argument("--token-latency", action="store_true")
+parser.add_argument(
+    "--lowp-mode",
+    choices=["BF16","FP32","INT8","FP16"], 
+    default="BF16",
+    type=str,
+    help="low precision mode for weight only quantization"
+)
 args = parser.parse_args()
 
 
@@ -170,6 +181,15 @@ def get_checkpoint_files(model_name_or_path):
 
 
 model_name = args.model_id
+
+if args.int8_bf16_mixed:
+    amp_enabled = True
+    amp_dtype = torch.bfloat16
+else:
+    amp_enabled = False
+    amp_dtype = torch.float32
+
+
 if args.dtype == "float16":
     load_dtype = torch.half
     infer_dtype = torch.half
@@ -210,16 +230,13 @@ if args.benchmark:
     deepspeed.runtime.utils.see_memory_usage("pre-from-pretrained", force=True)
 
 # Construct model with fake meta tensors, later will be replaced during ds-inference ckpt load
-with deepspeed.OnDevice(dtype=load_dtype, device="meta"):
-    # Even inside the meta device context, from_pretrained still loads the
-    # model to cpu instead of meta device. Use from_config instead to solve the issue for big models.
-    # We add the instance type check here since some of the models haven't yet supported from_config.
-    if model_class[0] == AutoModelForCausalLM:
+if world_size == 1:
+    model = model_class[0].from_pretrained(
+        model_name, config=config, low_cpu_mem_usage=True, torch_dtype=load_dtype
+    )
+else:
+    with deepspeed.OnDevice(dtype=load_dtype, device="meta"):
         model = model_class[0].from_config(config).to(load_dtype)
-    else:
-        model = model_class[0].from_pretrained(
-            model_name, config=config, low_cpu_mem_usage=True, torch_dtype=load_dtype
-        )
 
 if args.benchmark:
     deepspeed.runtime.utils.see_memory_usage("post-from-pretrained", force=True)
@@ -287,6 +304,29 @@ if args.benchmark:
 # to ipex
 if args.ipex:
     ipex_woq_enabled = args.ipex_weight_only_quantization and args.dtype == "float32"
+
+    def convert_woq(m, qconfig, inplace=True):
+        import copy
+
+        def _convert(m):
+            from intel_extension_for_pytorch.nn.modules import IpexWoqLinear
+
+            if isinstance(m, torch.nn.Linear):
+                m.qconfig = qconfig.global_qconfig
+                m_new = IpexWoqLinear.from_float(m)
+                return m_new
+            m_new = m
+
+            for name, child in m.named_children():
+                setattr(m_new, name, _convert(child))
+            return m_new
+
+        if not inplace:
+            m_new = copy.deepcopy(m)
+        else:
+            m_new = m
+        return _convert(m_new)
+    
     model = ipex._optimize_transformers(
         model.eval(),
         dtype=infer_dtype if not ipex_woq_enabled else torch.int8,
@@ -295,13 +335,27 @@ if args.ipex:
     if ipex_woq_enabled:
         from intel_extension_for_pytorch.quantization import convert, prepare
 
-        lowp_mode = ipex.quantization.WoqLowpMode.BF16
+        if args.lowp_mode == "INT8":
+            lowp_mode = ipex.quantization.WoqLowpMode.INT8
+        elif args.lowp_mode == "FP32":
+            lowp_mode = ipex.quantization.WoqLowpMode.NONE
+        elif args.lowp_mode == "FP16":
+            lowp_mode = ipex.quantization.WoqLowpMode.FP16
+        else:
+            lowp_mode = ipex.quantization.WoqLowpMode.BF16
+    
         qconfig = ipex.quantization.get_weight_only_quant_qconfig_mapping(
             lowp_mode=lowp_mode
         )
         model = prepare(model.eval(), qconfig, inplace=True, bn_folding=False)
         with torch.no_grad():
-            model = convert(model.eval(), inplace=True).eval()
+            model = convert_woq(model.eval(), inplace=True).eval()
+        with torch.no_grad(), torch.autocast(
+            device_type=args.device,
+            enabled=amp_enabled,
+            dtype=amp_dtype if amp_enabled else None,
+        ):
+            model = ipex.optimize(model, dtype=torch.bfloat16, inplace=True, concat_linear=False)            
 
 ### Generate
 
@@ -425,8 +479,11 @@ if args.jit:
 
     with torch.inference_mode(), torch.no_grad(), torch.autocast(
         device_type=args.device,
-        enabled=infer_dtype is torch.bfloat16,
-        dtype=infer_dtype if infer_dtype is torch.bfloat16 else None,
+        enabled=amp_enabled,
+        dtype=amp_dtype if amp_enabled else None,
+
+        # enabled=infer_dtype is torch.bfloat16,
+        # dtype=infer_dtype if infer_dtype is torch.bfloat16 else None,
     ):
         trace_model = torch.jit.trace(
             model, example_kwarg_inputs=example_inputs, strict=False, check_trace=False

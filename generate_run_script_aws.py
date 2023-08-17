@@ -180,6 +180,35 @@ def generate_commands(yml_file,mode,extra_kmp):
                             lines.append(f"numactl -m 0 -N 0 python {data['modelargs'][mode]['scriptname']} -m {model_id} --quantized-model-path {data['modelargs'][mode]['bestpath']} --device {data['modelargs'][mode]['device'][0]} --benchmark --input-tokens {input_token} --int8 --jit --token-latency \
                                     2>&1 | tee -a $log_dir/llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
                             lines.append(f"collect_perf_logs_llm llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
+        if mode == 'mixdefault':
+            lines.append("# DS Env config")
+            lines.append(f"export OMP_NUM_THREADS={data['launcher']['OMP_NUM_THREADS']}")
+            lines.append("export CCL_WORKER_COUNT=1")
+            lines.append("export CCL_PROCESS_LAUNCHER=none")
+            lines.append("export CCL_ATL_TRANSPORT=ofi")
+            lines.append("export CCL_ATL_SHM=1")
+            lines.append("export DS_SHM_ALLREDUCE=1")
+            lines.append("unset KMP_AFFINITY")
+            lines.append("# Run workload") 
+            for model_id in data['modelargs'][mode]['modelid']:
+                for input_token in data['modelargs'][mode]['inputtokens']:
+                    for dtype in data['modelargs'][mode]['dtype']:
+                        if model_id == 'EleutherAI/gpt-neox-20b':
+                            lines.append(f"nohup bash /root/workspace/ipex-llm/get_mem.sh >> $log_dir/mem-usage-llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log 2>&1 || true &")
+                            lines.append(f"deepspeed --bind_cores_to_rank  --num_accelerators 2 run_generation_with_deepspeed.py --benchmark -m {model_id} --dtype float32 --ipex --jit --ipex-weight-only-quantization \
+                                         2>&1 | tee -a $log_dir/llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
+                            
+                            lines.append(f"collect_perf_logs_llm llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
+                        else:
+                            lines.append(f"nohup bash /root/workspace/ipex-llm/get_mem.sh >> $log_dir/mem-usage-llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log 2>&1 || true &")
+                            lines.append(f"deepspeed --bind_cores_to_rank  --num_accelerators 2 run_generation_with_deepspeed.py --benchmark -m {model_id} --dtype float32 --int8-bf16-mixed --ipex --jit --ipex-weight-only-quantization \
+                                         2>&1 | tee -a $log_dir/llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
+                            
+                            lines.append(f"collect_perf_logs_llm llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
+                            
+                            # python run_llama_int8.py --ipex-weight-only-quantization --lambada --output-dir "saved_results" --jit --int8-bf16-mixed -m <model> --lowp-mode "BF16"
+                            
+
 
         lines.append(f"sleep 5s")
         lines.append("")
