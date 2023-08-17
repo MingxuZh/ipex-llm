@@ -16,7 +16,7 @@ cd ${script_dir}
 source activate llm
 pip install pyyaml
 pip install SentencePiece
-export TRANSFORMERS_OFFLINE=1
+export TRANSFORMERS_OFFLINE=0
 source /root/oneCCL_install/env/setvars.sh
 # collec result
 function run_benchmark {
