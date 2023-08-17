@@ -24,5 +24,4 @@ ipex_branch=main
 
 sudo docker build --no-cache \
              -t $IMAGE_NAME \
-             -v /home/mengfeil/huggingface:/root/.cache/huggingface \
              -f DockerFileaws.llm .
