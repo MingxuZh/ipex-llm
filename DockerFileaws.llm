@@ -106,9 +106,9 @@ RUN source /root/anaconda3/bin/activate llm && \
     cd /opt/installs && \
     pip install ipex-llm/deepspeed-0.10.0+e21231df-py3-none-any.whl
 
-RUN /root/anaconda3/bin/conda clean -y -all && \
-    yum clean all && \
-    rm -rf /opt/installs/
+#RUN /root/anaconda3/bin/conda clean -y -all && \
+#    yum clean all && \
+#    rm -rf /opt/installs/
 
 
 ENV BASH_ENV=/opt/.bash_profile
