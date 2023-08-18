@@ -181,7 +181,6 @@ def generate_commands(yml_file,mode,extra_kmp):
                                     2>&1 | tee -a $log_dir/llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
                             lines.append(f"collect_perf_logs_llm llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
         if mode == 'mixdefault':
-        if mode.endswith('deepspeed'):
             lines.append("# DS Env config")
             lines.append(f"export OMP_NUM_THREADS={data['launcher']['OMP_NUM_THREADS']}")
             lines.append("unset KMP_AFFINITY")
