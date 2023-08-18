@@ -197,13 +197,13 @@ def generate_commands(yml_file,mode,extra_kmp):
                     for dtype in data['modelargs'][mode]['dtype']:
                         if model_id == 'EleutherAI/gpt-neox-20b':
                             lines.append(f"nohup bash /root/workspace/ipex-llm/get_mem.sh >> $log_dir/mem-usage-llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log 2>&1 || true &")
-                            lines.append(f"deepspeed --bind_cores_to_rank  --num_accelerators 2 --bind_core_list 0-95 run_generation_with_deepspeed.py --benchmark -m {model_id} --dtype float32 --ipex --jit --ipex-weight-only-quantization \
+                            lines.append(f"deepspeed --bind_cores_to_rank  --num_accelerators 2 --bind_core_list 0-95 run_generation_with_deepspeed.py --benchmark -m {model_id} --device cpu --dtype float32 --input-tokens {input_token} --ipex --jit --ipex-weight-only-quantization \
                                          2>&1 | tee -a $log_dir/llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
                             
                             lines.append(f"collect_perf_logs_llm llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
                         else:
                             lines.append(f"nohup bash /root/workspace/ipex-llm/get_mem.sh >> $log_dir/mem-usage-llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log 2>&1 || true &")
-                            lines.append(f"deepspeed --bind_cores_to_rank  --num_accelerators 2 --bind_core_list 0-95 run_generation_with_deepspeed.py --benchmark -m {model_id} --dtype float32 --int8-bf16-mixed --ipex --jit --ipex-weight-only-quantization \
+                            lines.append(f"deepspeed --bind_cores_to_rank  --num_accelerators 2 --bind_core_list 0-95 run_generation_with_deepspeed.py --benchmark -m {model_id} --dtype float32 --input-tokens {input_token} --device cpu --ipex --jit --ipex-weight-only-quantization \
                                          2>&1 | tee -a $log_dir/llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
                             
                             lines.append(f"collect_perf_logs_llm llm_{mode}_{model_id.replace('/','-')}_{dtype}_{input_token}.log")
