@@ -17,7 +17,8 @@ source activate llm
 pip install pyyaml
 pip install SentencePiece
 export TRANSFORMERS_OFFLINE=0
-source /root/oneCCL_install/env/setvars.sh
+source $(python -c "import oneccl_bindings_for_pytorch as torch_ccl;print(torch_ccl.cwd)")/env/setvars.sh
+# source /root/oneCCL_install/env/setvars.sh
 # collec result
 function run_benchmark {
     # generate cmd
