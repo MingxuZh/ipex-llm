@@ -11,7 +11,7 @@ mkdir -p $log_dir
 script_dir=/root/workspace/ipex-llm
 cd ${script_dir}
 
-# source $HOME/oneCCL_install/env/setvars.sh
+source $HOME/oneCCL_install/env/setvars.sh
 
 source activate llm
 pip install pyyaml
