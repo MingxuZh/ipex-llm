@@ -17,31 +17,31 @@ launcher:
   numactlN: 0
   numactlM: 0
 modelargs:
-  mixdefault:
-    modelid:
-      - meta-llama/Llama-2-13b-hf
-      - EleutherAI/gpt-neox-20b 
-    scriptname: run_generation_with_deepspeed.py
-    device:
-      - cpu
-    dtype:
-      - int8
-    inputtokens:
-      - 32
-      - 128
-      - 1024
-      - 2016
-      - 2048
-    maxnewtokens: 32
-    prompt: None
-    greedy: 
-      - false
-    ipex: true
-    jit: true
-    numiter: 50
-    numwarmup: 5
-    batchsize: 1
-    tokenlatency: true
+  # mixdefault:
+  #   modelid:
+  #     - meta-llama/Llama-2-13b-hf
+  #     - EleutherAI/gpt-neox-20b 
+  #   scriptname: run_generation_with_deepspeed.py
+  #   device:
+  #     - cpu
+  #   dtype:
+  #     - int8
+  #   inputtokens:
+  #     - 32
+  #     - 128
+  #     - 1024
+  #     - 2016
+  #     - 2048
+  #   maxnewtokens: 32
+  #   prompt: None
+  #   greedy: 
+  #     - false
+  #   ipex: true
+  #   jit: true
+  #   numiter: 50
+  #   numwarmup: 5
+  #   batchsize: 1
+  #   tokenlatency: true
   # llama7:
   #   modelid:
   #     - meta-llama/Llama-2-7b-hf
@@ -63,33 +63,33 @@ modelargs:
   #   numwarmup: 5
   #   batchsize: 1
   #   tokenlatency: true
-  # gptint8:
-  #   modelid:
-  #     - EleutherAI/gpt-j-6B
-  #   scriptname: run_gptj_int8.py
-  #   device:
-  #     - cpu
-  #   dtype:
-  #     - int8
-  #   inputtokens:
-  #     - 32
-  #     - 128
-  #     - 1024
-  #     - 2016
-  #     - 2048
-  #   maxnewtokens: 32
-  #   outdir: "/root/workspace/ipex-llm/int8_gpt"
-  #   bestpath: "/root/workspace/ipex-llm/int8_gpt/best_model.pt"
-  #   prompt: None
-  #   greedy: 
-  #     - true
-  #     - false
-  #   ipex: true
-  #   jit: true
-  #   numiter: 50
-  #   numwarmup: 5
-  #   batchsize: 1
-  #   tokenlatency: true
+  gptint8:
+    modelid:
+      - EleutherAI/gpt-j-6B
+    scriptname: run_gptj_int8.py
+    device:
+      - cpu
+    dtype:
+      - int8
+    inputtokens:
+      - 32
+      - 128
+      - 1024
+      - 2016
+      - 2048
+    maxnewtokens: 32
+    outdir: "/root/workspace/ipex-llm/int8_gpt"
+    bestpath: "/root/workspace/ipex-llm/int8_gpt/best_model.pt"
+    prompt: None
+    greedy: 
+      - true
+      - false
+    ipex: true
+    jit: true
+    numiter: 50
+    numwarmup: 5
+    batchsize: 1
+    tokenlatency: true
   # llamaint8:
   #   modelid:
   #     - meta-llama/Llama-2-7b-hf
