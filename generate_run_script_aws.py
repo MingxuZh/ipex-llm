@@ -125,6 +125,7 @@ def generate_commands(yml_file,mode,extra_kmp):
         lines.append(f"export KMP_PLAIN_BARRIER_PATTERN={data['envconfig']['LLM_EXTRA_KMP']['KMP_PLAIN_BARRIER_PATTERN']}")
         lines.append(f"export KMP_REDUCTION_BARRIER_PATTERN={data['envconfig']['LLM_EXTRA_KMP']['KMP_REDUCTION_BARRIER_PATTERN']}")
         lines.append("export TRANSFORMERS_OFFLINE=0")
+        lines.append("export FI_PROVIDER=sockets")
         
         lines.append("log_dir=${1:-log_dir}")
         lines.append("mkdir -p $log_dir")
