@@ -26,8 +26,7 @@ newgrp docker
 rm -rf /home/ubuntu/workspace
 
 mkdir /home/ubuntu/workspace
-
-docker run -it --privileged --rm -v /home/ubuntu/workspace:/root/workspace forllmaws
+docker run -it --privileged --rm --net=host -v /home/ubuntu/workspace:/root/workspace forllmaws
 
 source activate llm
 
