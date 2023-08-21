@@ -349,7 +349,7 @@ if args.ipex:
         )
         model = prepare(model.eval(), qconfig, inplace=True, bn_folding=False)
         with torch.no_grad():
-            model = convert_woq(model.eval(), inplace=True).eval()
+            model = convert_woq(model.eval(), qconfig, inplace=True).eval()
         with torch.no_grad(), torch.autocast(
             device_type=args.device,
             enabled=amp_enabled,
