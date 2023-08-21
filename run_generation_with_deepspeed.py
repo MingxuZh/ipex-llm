@@ -190,18 +190,18 @@ else:
     amp_dtype = torch.float32
 
 
-if args.dtype == "float16":
-    load_dtype = torch.half
-    infer_dtype = torch.half
-elif args.dtype == "bfloat16":
-    load_dtype = torch.bfloat16
-    infer_dtype = torch.bfloat16
-elif args.dtype == "int8":
-    load_dtype = torch.half
-    infer_dtype = torch.int8
-elif args.dtype == "float32":
-    load_dtype = torch.float32
-    infer_dtype = torch.float32
+# if args.dtype == "float16":
+#     load_dtype = torch.half
+#     infer_dtype = torch.half
+# elif args.dtype == "bfloat16":
+#     load_dtype = torch.bfloat16
+#     infer_dtype = torch.bfloat16
+# elif args.dtype == "int8":
+#     load_dtype = torch.half
+#     infer_dtype = torch.int8
+# elif args.dtype == "float32":
+#     load_dtype = torch.float32
+#     infer_dtype = torch.float32
 
 tp_presharded_mode = True if model_name in tp_presharded_models else False
 
