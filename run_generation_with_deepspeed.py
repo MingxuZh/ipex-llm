@@ -303,7 +303,7 @@ if args.benchmark:
 
 # to ipex
 if args.ipex:
-    ipex_woq_enabled = args.ipex_weight_only_quantization and args.dtype == "float32"
+    ipex_woq_enabled = args.ipex_weight_only_quantization
 
     def convert_woq(m, qconfig, inplace=True):
         import copy
