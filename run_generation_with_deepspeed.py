@@ -483,11 +483,11 @@ if args.jit:
 
     with torch.inference_mode(), torch.no_grad(), torch.autocast(
         device_type=args.device,
-        enabled=amp_enabled,
-        dtype=amp_dtype if amp_enabled else None,
+        # enabled=amp_enabled,
+        # dtype=amp_dtype if amp_enabled else None,
 
-        # enabled=infer_dtype is torch.bfloat16,
-        # dtype=infer_dtype if infer_dtype is torch.bfloat16 else None,
+        enabled=infer_dtype is torch.bfloat16,
+        dtype=infer_dtype if infer_dtype is torch.bfloat16 else None,
     ):
         trace_model = torch.jit.trace(
             model, example_kwarg_inputs=example_inputs, strict=False, check_trace=False
