@@ -189,7 +189,6 @@ if args.int8_bf16_mixed:
     infer_dtype = torch.bfloat16
 else:
     amp_enabled = False
-    amp_dtype = torch.float32
     if args.dtype == "float16":
         amp_dtype = torch.half
         load_dtype = torch.half
@@ -308,29 +307,6 @@ if args.benchmark:
 # to ipex
 if args.ipex:
     ipex_woq_enabled = args.ipex_weight_only_quantization
-
-    # def convert_woq(m, qconfig, inplace=True):
-    #     import copy
-
-    #     def _convert(m):
-    #         from intel_extension_for_pytorch.nn.modules import IpexWoqLinear
-
-    #         if isinstance(m, torch.nn.Linear):
-    #             m.qconfig = qconfig.global_qconfig
-    #             m_new = IpexWoqLinear.from_float(m)
-    #             return m_new
-    #         m_new = m
-
-    #         for name, child in m.named_children():
-    #             setattr(m_new, name, _convert(child))
-    #         return m_new
-
-    #     if not inplace:
-    #         m_new = copy.deepcopy(m)
-    #     else:
-    #         m_new = m
-    #     return _convert(m_new)
-    
     model = ipex._optimize_transformers(
         model.eval(),
         dtype=infer_dtype if not ipex_woq_enabled else torch.int8,
@@ -353,14 +329,7 @@ if args.ipex:
         )
         model = prepare(model.eval(), qconfig, inplace=True, bn_folding=False)
         with torch.no_grad():
-            model = convert(model.eval(), inplace=True).eval()
-            # model = convert_woq(model.eval(), qconfig, inplace=True).eval()
-        # with torch.no_grad(), torch.autocast(
-        #     device_type=args.device,
-        #     enabled=amp_enabled,
-        #     dtype=amp_dtype if amp_enabled else None,
-        # ):
-        #     model = ipex.optimize(model, dtype=torch.bfloat16, inplace=True, concat_linear=False)            
+            model = convert(model.eval(), inplace=True).eval()        
 
 ### Generate
 
@@ -484,9 +453,6 @@ if args.jit:
 
     with torch.inference_mode(), torch.no_grad(), torch.autocast(
         device_type=args.device,
-        # enabled=amp_enabled,
-        # dtype=amp_dtype if amp_enabled else None,
-
         enabled=infer_dtype is torch.bfloat16,
         dtype=infer_dtype if infer_dtype is torch.bfloat16 else None,
     ):
