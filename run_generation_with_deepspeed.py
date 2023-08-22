@@ -320,7 +320,12 @@ if args.ipex:
             lowp_mode=lowp_mode
         )
         model = prepare(model.eval(), qconfig, inplace=True, bn_folding=False)
-        with torch.no_grad():
+        model = prepare(model.eval(), qconfig, inplace=True, bn_folding=False)
+        with torch.no_grad(), torch.autocast(
+            device_type=args.device,
+            enabled=infer_dtype is torch.bfloat16,
+            dtype=infer_dtype if infer_dtype is torch.bfloat16 else None,
+        ):
             model = convert(model.eval(), inplace=True).eval()
             if infer_dtype == torch.bfloat16:
                 model = ipex.optimize(model, dtype=torch.bfloat16, inplace=True, concat_linear=False)
