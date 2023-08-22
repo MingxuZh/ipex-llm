@@ -322,6 +322,8 @@ if args.ipex:
         model = prepare(model.eval(), qconfig, inplace=True, bn_folding=False)
         with torch.no_grad():
             model = convert(model.eval(), inplace=True).eval()
+            if infer_dtype == torch.bfloat16:
+                model = ipex.optimize(model, dtype=torch.bfloat16, inplace=True, concat_linear=False)
 
 ### Generate
 
