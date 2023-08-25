@@ -51,7 +51,6 @@ parser.add_argument(
 parser.add_argument(
     "--jit", action="store_true", help="convert model to torchscript mode."
 )
-parser.add_argument("--int8-bf16-mixed", action="store_true", help="int8 mixed bf16")
 parser.add_argument("--quantized-model-path", default="./saved_result/best_model.pt")
 parser.add_argument(
     "--tasks",
@@ -61,6 +60,23 @@ parser.add_argument(
     ],
     type=str,
     help="tasks list for accuracy validation, only enabled lambada_openai and lambada_standard at present",
+)
+parser.add_argument(
+    "--ipex-weight-only-quantization",
+    action="store_true",
+    help="use ipex weight-only quantization",
+)
+parser.add_argument(
+    "--int8-bf16-mixed",
+    action="store_true",
+    help="by default it is int8-fp32 mixed, to enable int8 mixed amp bf16 (work on platforms like SPR)",
+)
+parser.add_argument(
+    "--lowp-mode",
+    choices=["BF16","FP32","INT8","FP16"], 
+    default="BF16",
+    type=str,
+    help="low precision mode for weight only quantization"
 )
 parser.add_argument(
     "--local_rank", required=False, type=int, help="used by dist launchers"
@@ -119,19 +135,23 @@ if args.accuracy_only:
             self._max_length = max_length
             self._dtype = dtype
             self._tp_number = tp_number
-
-            if dtype == "float16":
-                load_dtype = torch.half
-                infer_dtype = torch.half
-            elif dtype == "bfloat16":
+            
+            if args.int8_bf16_mixed:
                 load_dtype = torch.bfloat16
                 infer_dtype = torch.bfloat16
-            elif dtype == "int8":
-                load_dtype = torch.float32
-                infer_dtype = torch.int8
-            elif dtype == "float32":
-                load_dtype = torch.float32
-                infer_dtype = torch.float32
+            else:
+                if dtype == "float16":
+                    load_dtype = torch.half
+                    infer_dtype = torch.half
+                elif dtype == "bfloat16":
+                    load_dtype = torch.bfloat16
+                    infer_dtype = torch.bfloat16
+                elif dtype == "int8":
+                    load_dtype = torch.float32
+                    infer_dtype = torch.int8
+                elif dtype == "float32":
+                    load_dtype = torch.float32
+                    infer_dtype = torch.float32
 
             amp_enabled = True if dtype != "float32" else False
             amp_dtype = getattr(torch, dtype)
@@ -146,7 +166,8 @@ if args.accuracy_only:
             self.config = AutoConfig.from_pretrained(model_id, torchscript=with_jit)
 
             with deepspeed.OnDevice(dtype=load_dtype, device="meta"):
-                if model_class[0] == AutoModelForCausalLM:
+                print(model_class[0])
+                if model_class[0] == AutoModelForCausalLM and model_id != "meta-llama/Llama-2-7b-hf":
                     self.model = model_class[0].from_config(self.config).to(load_dtype)
                 else: 
                     self.model = model_class[0].from_pretrained(
@@ -159,13 +180,19 @@ if args.accuracy_only:
             self.model = self.model.eval()
           
             checkpoints_json = "checkpoints.json"
+
+            def print_rank0(*msg):
+                if local_rank != 0:
+                    return
+                print(*msg)
+
             def get_repo_root(model_name_or_path):
                 local_prefix = ("/", "./", "../")
                 if model_name_or_path.startswith(local_prefix):
                     return model_name_or_path
                 # checks if online or not
                 if is_offline_mode():
-                    print("Offline mode: forcing local_files_only=True")
+                    print_rank0("Offline mode: forcing local_files_only=True")
                 # download only on first process
                 allow_patterns = ["*.bin", "*.model", "*.json", "*.txt", "*.py", "*LICENSE"]
                 if local_rank == 0:
@@ -221,10 +248,46 @@ if args.accuracy_only:
 
             self.model = self.model.module
 
-            if with_ipex:
+
+            # to ipex
+            if args.ipex:
+                #ipex_woq_enabled = args.ipex_weight_only_quantization and args.dtype == "float32"
+                ipex_woq_enabled = args.ipex_weight_only_quantization
                 self.model = ipex._optimize_transformers(
-                    self.model.eval(), dtype=infer_dtype, inplace=True
+                    self.model.eval(),
+                    dtype=infer_dtype if not ipex_woq_enabled else torch.int8,
+                    inplace=True,
                 )
+                if ipex_woq_enabled:
+                    from intel_extension_for_pytorch.quantization import convert, prepare
+            
+                    if args.lowp_mode == "INT8":
+                        lowp_mode = ipex.quantization.WoqLowpMode.INT8
+                    elif args.lowp_mode == "FP32":
+                        lowp_mode = ipex.quantization.WoqLowpMode.NONE
+                    elif args.lowp_mode == "FP16":
+                        lowp_mode = ipex.quantization.WoqLowpMode.FP16
+                    else:
+                        lowp_mode = ipex.quantization.WoqLowpMode.BF16
+                
+                    qconfig = ipex.quantization.get_weight_only_quant_qconfig_mapping(
+                        lowp_mode=lowp_mode
+                    )
+                    self.model = prepare(self.model.eval(), qconfig, inplace=True, bn_folding=False)
+                    with torch.no_grad(), torch.autocast(
+                        device_type=args.device,
+                        enabled=infer_dtype is torch.float16,
+                        dtype=infer_dtype if infer_dtype is torch.bfloat16 else None,
+                    ):
+                        self.model = convert(self.model.eval(), inplace=True).eval()
+                        if infer_dtype == torch.bfloat16:
+                            self.model = ipex.optimize(self.model, dtype=torch.bfloat16, inplace=True, concat_linear=False)
+            
+
+            #if with_ipex:
+            #    self.model = ipex._optimize_transformers(
+            #        self.model.eval(), dtype=infer_dtype, inplace=True
+            #    )
 
             self.base_model = self.model
 
@@ -410,7 +473,8 @@ if args.accuracy_only:
                 attention_mask_batched = torch.stack(_attention_mask)
                 position_ids_batched = torch.stack(_position_ids)
 
-            if self._with_jit and self.iter == 0 and self._dtype == "int8":
+            #if self._with_jit and self.iter == 0 and self._dtype == "int8":
+            if self._with_jit and self.iter == 0:
                 with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
                     enabled=True
                     if args.int8_bf16_mixed or self._dtype == torch.bfloat16
