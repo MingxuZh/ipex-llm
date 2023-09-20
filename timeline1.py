@@ -73,6 +73,7 @@ parser.add_argument("--greedy", action="store_true")
 parser.add_argument("--ipex", action="store_true")
 parser.add_argument("--jit", action="store_true")
 parser.add_argument("--profile", action="store_true")
+parser.add_argument("--numanum", default="0", type=str)
 parser.add_argument("--benchmark", action="store_true")
 parser.add_argument("--lambada", action="store_true")
 parser.add_argument("--dataset", default="lambada", type=str)
@@ -485,7 +486,7 @@ def trace_handler(prof):
             os.makedirs(timeline_dir)
         except:
             pass
-    timeline_file = timeline_dir + 'timeline-' + str(torch.backends.quantized.engine) + '-' + \
+    timeline_file = timeline_dir + 'timeline-' + args.numanum + '-' + str(torch.backends.quantized.engine) + '-' + \
                 'llm-gpt-j-6b-bfloat16-' + str(prof.step_num) + '-' + str(os.getpid()) + '.json'
     prof.export_chrome_trace(timeline_file)
 
