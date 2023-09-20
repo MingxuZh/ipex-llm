@@ -481,7 +481,6 @@ if args.benchmark:
             timeline_file = timeline_dir + 'timeline-' + str(torch.backends.quantized.engine) + '-' + \
                         'llm-gpt-j-6b-bfloat16-' + str(prof.step_num) + '-' + str(os.getpid()) + '.json'
             prof.export_chrome_trace(timeline_file)
-            
 
         with torch.profiler.profile(
             activities=[torch.profiler.ProfilerActivity.CPU],
