@@ -52,6 +52,7 @@ parser.add_argument(
 parser.add_argument(
     "--ipex", action="store_true", help="use intel extension for pytorch."
 )
+parser.add_argument("--greedy", action="store_true")
 parser.add_argument(
     "--jit", action="store_true", help="convert model to torchscript mode."
 )
