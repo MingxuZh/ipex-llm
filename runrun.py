@@ -36,7 +36,9 @@ MODEL_CLASSES = {
 }
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-m", "--model", nargs="?", default="EleutherAI/gpt-j-6b")
+parser.add_argument(
+    "-m", "--model-id", default=None, type=str, required=True, help="your llama model"
+)
 parser.add_argument("--output_dir", nargs="?", default="./saved_results")
 parser.add_argument("--device", default="cpu", type=str, help="cpu")
 parser.add_argument(
@@ -54,6 +56,11 @@ parser.add_argument(
 )
 parser.add_argument(
     "--max-new-tokens", default=32, type=int, help="output max new tokens"
+)
+parser.add_argument(
+    "--ipex-weight-only-quantization",
+    action="store_true",
+    help="use ipex weight-only quantization",
 )
 parser.add_argument("--input-tokens", default="32", type=str)
 parser.add_argument("--greedy", action="store_true")
