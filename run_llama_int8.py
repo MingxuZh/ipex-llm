@@ -61,6 +61,13 @@ parser.add_argument("--token-latency", action="store_true")
 parser.add_argument("--greedy", action="store_true")
 parser.add_argument("--profile", action="store_true")
 parser.add_argument(
+    "--kv-cache-dtype",
+    type=str,
+    choices=["float8_e5m2", "None"],
+    default="None",
+    help="Specify the kv_cache data type, you can use float8_e5m2 to reduce kv_cache memory footprint but may slightly drop the accuracy.",
+)
+parser.add_argument(
     "--lowp-mode",
     choices=["BF16","FP32","INT8","FP16"], 
     default="BF16",

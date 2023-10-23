@@ -52,6 +52,10 @@ parser.add_argument(
 parser.add_argument(
     "--ipex", action="store_true", help="use intel extension for pytorch."
 )
+parser.add_argument(
+    "--max-new-tokens", default=32, type=int, help="output max new tokens"
+)
+parser.add_argument("--input-tokens", default="32", type=str)
 parser.add_argument("--greedy", action="store_true")
 parser.add_argument(
     "--jit", action="store_true", help="convert model to torchscript mode."
