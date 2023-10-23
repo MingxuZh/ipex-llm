@@ -75,6 +75,8 @@ parser.add_argument(
     help="Specify the kv_cache data type, you can use float8_e5m2 to reduce kv_cache memory footprint but may slightly drop the accuracy.",
 )
 parser.add_argument("--prompt", default=None, type=str)
+parser.add_argument("--profile", action="store_true")
+parser.add_argument("--benchmark", action="store_true")
 parser.add_argument("--int8-bf16-mixed", action="store_true", help="int8 mixed bf16")
 parser.add_argument("--quantized-model-path", default="./saved_result/best_model.pt")
 parser.add_argument(
