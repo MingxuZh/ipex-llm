@@ -5,8 +5,8 @@ export https_proxy=http://proxy-chain.intel.com:911
 export http_proxy=http://proxy-chain.intel.com:911
 
 apt-get update
-apt-get install numactl
-apt-get install tee
+apt-get install -y numactl
+# apt-get install tee
 
 
 pip uninstall torch
