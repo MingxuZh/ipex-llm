@@ -10,8 +10,8 @@ apt-get install -y numactl
 
 
 pip uninstall -y torch
-pip install -y torch==2.1
-pip install -y http://mlpc.intel.com/downloads/cpu/ipex-2.1/ipex_release/rc2/intel_extension_for_pytorch-2.1.0+cpu-cp39-cp39-linux_x86_64.whl
+pip install torch==2.1
+pip install http://mlpc.intel.com/downloads/cpu/ipex-2.1/ipex_release/rc2/intel_extension_for_pytorch-2.1.0+cpu-cp39-cp39-linux_x86_64.whl
 
 nohup numactl -C 0-55 -m 0 text-generation-launcher -p 80 --model-id huggyllama/llama-7b --dtype bfloat16 2>&1 | tee -a serve.log &
 
