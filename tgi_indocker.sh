@@ -18,12 +18,12 @@ nohup numactl -C 0-55 -m 0 text-generation-launcher -p 80 --model-id huggyllama/
 sleep 480s
 
 curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": true}}' -H 'Content-Type: application/json' >> /data/client.log 2>&1 || true &
-wait 
+sleep 10s
 curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": true}}' -H 'Content-Type: application/json' >> /data/client.log 2>&1 || true &
-wait 
+sleep 10s
 curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": true}}' -H 'Content-Type: application/json' >> /data/client.log 2>&1 || true &
-wait 
+sleep 10s
 curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": true}}' -H 'Content-Type: application/json' >> data/client.log 2>&1 || true &
-wait 
+sleep 10s
 curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": true}}' -H 'Content-Type: application/json' >> /data/client.log 2>&1 || true &
-wait
+sleep 10s
