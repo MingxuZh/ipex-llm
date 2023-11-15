@@ -15,15 +15,3 @@ pip install http://mlpc.intel.com/downloads/cpu/ipex-2.1/ipex_release/rc2/intel_
 
 nohup numactl -C 0-55 -m 0 text-generation-launcher -p 80 --model-id huggyllama/llama-7b --dtype bfloat16 >> /data/serve.log 2>&1 || true &
 
-sleep 480s
-
-curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": false}}' -H 'Content-Type: application/json' >> /data/client.log 2>&1 || true &
-sleep 10s
-curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": false}}' -H 'Content-Type: application/json' >> /data/client.log 2>&1 || true &
-sleep 10s
-curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": false}}' -H 'Content-Type: application/json' >> /data/client.log 2>&1 || true &
-sleep 10s
-curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": false}}' -H 'Content-Type: application/json' >> data/client.log 2>&1 || true &
-sleep 10s
-curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": false}}' -H 'Content-Type: application/json' >> /data/client.log 2>&1 || true &
-sleep 10s

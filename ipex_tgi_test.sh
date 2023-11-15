@@ -13,8 +13,19 @@ cd $PWD/data
 wget https://raw.githubusercontent.com/MingxuZh/ipex-llm/main/tgi_indocker.sh
 cd $PWD
 
-sudo docker run -it --shm-size 1g -p 8088:80 --cap-add=sys_nice --ipc=host -v $volume:/data tgi_xeon bash /data/tgi_indocker.sh || true
+sudo docker run -it --shm-size 1g -p 8088:80 -d --cap-add=sys_nice --ipc=host -v $volume:/data tgi_xeon bash /data/tgi_indocker.sh || true
 
 
+sleep 480s
 
+curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": false}}' -H 'Content-Type: application/json' >> /data/client.log 2>&1 || true &
+sleep 10s
+curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": false}}' -H 'Content-Type: application/json' >> /data/client.log 2>&1 || true &
+sleep 10s
+curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": false}}' -H 'Content-Type: application/json' >> /data/client.log 2>&1 || true &
+sleep 10s
+curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": false}}' -H 'Content-Type: application/json' >> data/client.log 2>&1 || true &
+sleep 10s
+curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":128, "do_sample": false}}' -H 'Content-Type: application/json' >> /data/client.log 2>&1 || true &
+sleep 10s
 
