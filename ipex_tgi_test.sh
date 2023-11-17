@@ -18,7 +18,7 @@ sudo docker run -dt --shm-size 1g -p 8088:80 -d --cap-add=sys_nice --ipc=host -v
 
 # sleep 220s
 # while [ -f /localdisk2/mint/text-generation-inference/data/serve.log ]
-while 1
+while true
 do
         echo "exist"
         if [ `grep -c "Invalid hostname, defaulting to 0.0.0.0" /localdisk2/mint/text-generation-inference/data/serve.log` -ne '0' ];then
