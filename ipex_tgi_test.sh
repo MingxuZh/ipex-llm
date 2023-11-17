@@ -20,7 +20,7 @@ sudo docker run -dt --shm-size 1g -p 8088:80 -d --cap-add=sys_nice --ipc=host -v
 # while [ -f /localdisk2/mint/text-generation-inference/data/serve.log ]
 while true
 do
-        echo "exist"
+        
         if [ `grep -c "Invalid hostname, defaulting to 0.0.0.0" /localdisk2/mint/text-generation-inference/data/serve.log` -ne '0' ];then
                 echo "Yes"
                 curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":32, "do_sample": false}}' -H 'Content-Type: application/json' | tee -a /localdisk2/mint/text-generation-inference/data/client1.log
@@ -40,8 +40,6 @@ do
                         break
                 done
                 break
-        else
-                echo "No"
         fi
 done
 
