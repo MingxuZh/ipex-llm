@@ -1,17 +1,11 @@
-import os
 import argparse
-import json
 import re
-import gc
 import torch
-from pathlib import Path
 import intel_extension_for_pytorch as ipex
 
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
-    LlamaForCausalLM,
-    T5ForConditionalGeneration,
     AutoTokenizer,
     LlamaTokenizer,
 )
@@ -21,8 +15,9 @@ MODEL_CLASSES = {
     "gpt-j": (AutoModelForCausalLM, AutoTokenizer),
     "gpt-neox": (AutoModelForCausalLM, AutoTokenizer),
     "opt": (AutoModelForCausalLM, AutoTokenizer),
-    "bloom": (AutoModelForCausalLM, AutoTokenizer),
     "llama": (AutoModelForCausalLM, LlamaTokenizer),
+    "falcon": (AutoModelForCausalLM, AutoTokenizer),
+    "codegen": (AutoModelForCausalLM, AutoTokenizer),
     "auto": (AutoModelForCausalLM, AutoTokenizer),
 }
 
@@ -52,19 +47,21 @@ parser.add_argument(
     "--tasks",
     nargs="+",
     default=[
-        "lambada_openai",
+        "lambada_standard",
     ],
     type=str,
-    help="tasks list for accuracy validation, only enabled lambada_openai and lambada_standard at present",
+    help="tasks list for accuracy validation, only enabled lambada_standard and lambada_standard at present",
 )
-
+parser.add_argument(
+    "--config-file", default=None, type=str, help="specific configuration file"
+)
 
 args = parser.parse_args()
 
 
 if args.accuracy_only:
     import lm_eval
-    from lm_eval import tasks, evaluator, models
+    from lm_eval import evaluator
     from lm_eval.base import BaseLM
     from typing import Union, List, Optional
     from transformers import BatchEncoding
@@ -84,6 +81,7 @@ if args.accuracy_only:
             batch_size=1,
             max_length=None,
             dtype: Optional[Union[str, torch.dtype]] = "auto",
+            config=None,
         ):
             super().__init__()
 
@@ -115,22 +113,48 @@ if args.accuracy_only:
                 (x for x in MODEL_CLASSES.keys() if x in model_id.lower()), "auto"
             )
             model_class = MODEL_CLASSES[model_type]
-            self.tokenizer = model_class[1].from_pretrained(model_id)
-
-            self.config = AutoConfig.from_pretrained(model_id, torchscript=with_jit)
-
-            self.model = model_class[0].from_pretrained(
-                model_id,
-                low_cpu_mem_usage=True,
-                config=self.config,
-                torch_dtype=load_dtype,
+            self.tokenizer = model_class[1].from_pretrained(
+                model_id, trust_remote_code=True
             )
+            if config is None:
+                self.config = AutoConfig.from_pretrained(
+                    model_id, torchscript=with_jit, trust_remote_code=True
+                )
+            else:
+                self.config = AutoConfig.from_pretrained(
+                    config, torchscript=with_jit, trust_remote_code=True
+                )
+
+            if self._dtype == "int8":
+                try:
+                    with ipex.OnDevice(dtype=torch.float, device="meta"):
+                        self.model = AutoModelForCausalLM.from_config(self.config)
+                except (RuntimeError, AttributeError) as e:
+                    print('Warning: Loading model to meta device failed:', e)
+                    self.model = model_class[0].from_pretrained(
+                        model_id,
+                        low_cpu_mem_usage=True,
+                        config=self.config,
+                        torch_dtype=load_dtype,
+                        trust_remote_code=True,
+                    )
+            else:
+                self.model = model_class[0].from_pretrained(
+                    model_id,
+                    low_cpu_mem_usage=True,
+                    config=self.config,
+                    torch_dtype=load_dtype,
+                    trust_remote_code=True,
+                )
 
             self.model = self.model.eval()
 
-            if with_ipex:
-                self.model = ipex._optimize_transformers(
-                    self.model.eval(), dtype=infer_dtype, inplace=True
+            if with_ipex and dtype != "int8":
+                self.model = ipex.optimize_transformers(
+                    self.model.eval(),
+                    dtype=infer_dtype,
+                    inplace=True,
+                    deployment_mode=False,
                 )
 
             self.base_model = self.model
@@ -145,18 +169,20 @@ if args.accuracy_only:
             _attention_mask = []
             _position_ids = []
 
-
             if self._with_jit:
                 for text in inputs:
                     input_ids = text.to(self._device)
                     input_bs = inputs.shape[0] * self.num_beams
-                    if re.search("GPTJ", self.base_model.config.architectures[0]):
+                    if re.search("GPTJ", self.base_model.config.architectures[0]) or re.search("codegen", self.base_model.config.architectures[0], re.IGNORECASE):
                         beam_idx_tmp = torch.zeros(
                             (2048, int(input_bs)), dtype=torch.long
                         ).contiguous()
                         past_key_values = tuple(
                             [
                                 (
+                                    torch.zeros(
+                                        1, 0, 0, 1, dtype=torch.long
+                                    ).contiguous(),
                                     torch.zeros(
                                         [
                                             1,
@@ -186,7 +212,6 @@ if args.accuracy_only:
                                         ]
                                     ).contiguous(),
                                     beam_idx_tmp,
-                                    torch.zeros(1, dtype=torch.long).contiguous(),
                                 )
                                 for i in range(self.base_model.config.n_layer)
                             ]
@@ -201,6 +226,9 @@ if args.accuracy_only:
                             [
                                 (
                                     torch.zeros(
+                                        1, 0, 0, 1, dtype=torch.long
+                                    ).contiguous(),
+                                    torch.zeros(
                                         [
                                             1,
                                             int(
@@ -229,13 +257,14 @@ if args.accuracy_only:
                                         ]
                                     ).contiguous(),
                                     beam_idx_tmp,
-                                    torch.zeros(1, dtype=torch.long).contiguous(),
                                 )
                                 for i in range(self.base_model.config.num_hidden_layers)
                             ]
                         )
                     elif re.search(
-                        "gptneox", self.base_model.config.architectures[0], re.IGNORECASE
+                        "gptneox",
+                        self.base_model.config.architectures[0],
+                        re.IGNORECASE,
                     ):
                         beam_idx_tmp = torch.zeros(
                             (2048, int(input_bs)), dtype=torch.long
@@ -244,6 +273,9 @@ if args.accuracy_only:
                             [
                                 (
                                     torch.zeros(
+                                        1, 0, 0, 1, dtype=torch.long
+                                    ).contiguous(),
+                                    torch.zeros(
                                         [
                                             1,
                                             int(
@@ -272,41 +304,8 @@ if args.accuracy_only:
                                         ]
                                     ).contiguous(),
                                     beam_idx_tmp,
-                                    torch.zeros(1, dtype=torch.long).contiguous(),
                                 )
                                 for i in range(self.base_model.config.num_hidden_layers)
-                            ]
-                        )
-                    elif re.search(
-                        "bloom", self.base_model.config.architectures[0], re.IGNORECASE
-                    ):
-                        past_key_values = tuple(
-                            [
-                                (
-                                    torch.zeros(
-                                        [
-                                            1,
-                                            int(self.base_model.config.n_head),
-                                            1,
-                                            int(
-                                                self.base_model.config.hidden_size
-                                                / self.base_model.config.n_head
-                                            ),
-                                        ]
-                                    ),
-                                    torch.zeros(
-                                        [
-                                            1,
-                                            int(self.base_model.config.n_head),
-                                            1,
-                                            int(
-                                                self.base_model.config.hidden_size
-                                                / self.base_model.config.n_head
-                                            ),
-                                        ]
-                                    ),
-                                )
-                                for i in range(self.base_model.config.n_layer)
                             ]
                         )
                     elif re.search(
@@ -319,6 +318,9 @@ if args.accuracy_only:
                             [
                                 (
                                     torch.zeros(
+                                        1, 0, 0, 1, dtype=torch.long
+                                    ).contiguous(),
+                                    torch.zeros(
                                         [
                                             1,
                                             int(
@@ -347,9 +349,59 @@ if args.accuracy_only:
                                         ]
                                     ).contiguous(),
                                     beam_idx_tmp,
-                                    torch.zeros(1, dtype=torch.long).contiguous(),
                                 )
                                 for i in range(self.base_model.config.num_hidden_layers)
+                            ]
+                        )
+                    elif re.search(
+                        "falcon", self.base_model.config.architectures[0], re.IGNORECASE
+                    ) or re.search(
+                        "rw", self.base_model.config.architectures[0], re.IGNORECASE
+                    ):
+                        beam_idx_tmp = torch.zeros(
+                            (2048, int(input_bs)), dtype=torch.long
+                        ).contiguous()
+                        num_hidden_layers = (
+                            self.base_model.config.num_hidden_layers
+                            if hasattr(self.base_model.config, "num_hidden_layers")
+                            else self.base_model.config.n_layer
+                        )
+                        num_attention_heads = (
+                            self.base_model.config.num_attention_heads
+                            if hasattr(self.base_model.config, "num_attention_heads")
+                            else self.base_model.config.n_head
+                        )
+                        past_key_values = tuple(
+                            [
+                                (
+                                    torch.zeros(
+                                        1, 0, 0, 1, dtype=torch.long
+                                    ).contiguous(),
+                                    torch.zeros(
+                                        [
+                                            1,
+                                            int(num_attention_heads / self.tp_number),
+                                            1,
+                                            int(
+                                                self.base_model.config.hidden_size
+                                                / num_attention_heads
+                                            ),
+                                        ]
+                                    ).contiguous(),
+                                    torch.zeros(
+                                        [
+                                            1,
+                                            int(num_attention_heads / self.tp_number),
+                                            1,
+                                            int(
+                                                self.base_model.config.hidden_size
+                                                / num_attention_heads
+                                            ),
+                                        ]
+                                    ).contiguous(),
+                                    beam_idx_tmp,
+                                )
+                                for i in range(num_hidden_layers)
                             ]
                         )
 
@@ -362,7 +414,7 @@ if args.accuracy_only:
                 attention_mask_batched = torch.stack(_attention_mask)
                 position_ids_batched = torch.stack(_position_ids)
 
-            if self._with_jit and self.iter == 0 and self._dtype == "int8":
+            if self._with_jit and self.iter == 0:
                 with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
                     enabled=True
                     if args.int8_bf16_mixed or self._dtype == torch.bfloat16
@@ -370,14 +422,22 @@ if args.accuracy_only:
                     dtype=torch.bfloat16,
                 ):
                     if self._dtype != "int8":
-                        if re.search(
-                            "bloom",
-                            self.base_model.config.architectures[0],
-                            re.IGNORECASE,
-                        ) or re.search(
-                            "OPT",
-                            self.base_model.config.architectures[0],
-                            re.IGNORECASE,
+                        if (
+                            re.search(
+                                "OPT",
+                                self.base_model.config.architectures[0],
+                                re.IGNORECASE,
+                            )
+                            or re.search(
+                                "falcon",
+                                self.base_model.config.architectures[0],
+                                re.IGNORECASE,
+                            )
+                            or re.search(
+                                "rw",
+                                self.base_model.config.architectures[0],
+                                re.IGNORECASE,
+                            )
                         ):
                             example_dict = {
                                 "input_ids": inputs,
@@ -403,10 +463,20 @@ if args.accuracy_only:
                         self.model = torch.jit.load(args.quantized_model_path)
                         self.model = torch.jit.freeze(self.model.eval())
 
-                    if re.search(
-                        "bloom", self.base_model.config.architectures[0], re.IGNORECASE
-                    ) or re.search(
-                        "OPT", self.base_model.config.architectures[0], re.IGNORECASE
+                    if (
+                        re.search(
+                            "OPT",
+                            self.base_model.config.architectures[0],
+                            re.IGNORECASE,
+                        )
+                        or re.search(
+                            "falcon",
+                            self.base_model.config.architectures[0],
+                            re.IGNORECASE,
+                        )
+                        or re.search(
+                            "rw", self.base_model.config.architectures[0], re.IGNORECASE
+                        )
                     ):
                         self.model(
                             inputs,
@@ -434,10 +504,14 @@ if args.accuracy_only:
 
                 self.iter = self.iter + 1
 
-            if re.search(
-                "bloom", self.base_model.config.architectures[0], re.IGNORECASE
-            ) or re.search(
-                "OPT", self.base_model.config.architectures[0], re.IGNORECASE
+            if (
+                re.search("OPT", self.base_model.config.architectures[0], re.IGNORECASE)
+                or re.search(
+                    "falcon", self.base_model.config.architectures[0], re.IGNORECASE
+                )
+                or re.search(
+                    "rw", self.base_model.config.architectures[0], re.IGNORECASE
+                )
             ):
                 with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
                     enabled=True
@@ -529,7 +603,7 @@ if args.accuracy_only:
             return self.model.generate(context, **generation_kwargs)
 
     task_dict = lm_eval.tasks.get_task_dict(args.tasks)
-
+    torch._C._jit_set_texpr_fuser_enabled(False)
     hfmodel = HuggingFaceModel(
         model_id=args.model,
         device="cpu",
@@ -537,6 +611,7 @@ if args.accuracy_only:
         with_ipex=args.ipex,
         with_jit=args.jit,
         dtype=args.dtype,
+        config=args.config_file,
     )
 
     results = evaluator.evaluate(
