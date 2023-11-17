@@ -15,7 +15,7 @@ cd $PWD
 
 sudo docker run -dt --shm-size 1g -p 8088:80 -d --cap-add=sys_nice --ipc=host -v $volume:/data ccr-registry.caas.intel.com/pytorch/pytorch-ipex-spr:tgi_xeon bash /data/tgi_indocker.sh || true
 
-
+sleep 200s
 while [ -f $PWD/data/serve.log ]
 do
         echo "exist"
