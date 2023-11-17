@@ -15,7 +15,7 @@ cd $PWD
 
 sudo docker run -dt --shm-size 1g -p 8088:80 -d --cap-add=sys_nice --ipc=host -v $volume:/data ccr-registry.caas.intel.com/pytorch/pytorch-ipex-spr:tgi_xeon bash /data/tgi_indocker.sh || true
 
-sleep 220s
+# sleep 220s
 while [ -f /localdisk2/mint/text-generation-inference/data/serve.log ]
 do
         echo "exist"
