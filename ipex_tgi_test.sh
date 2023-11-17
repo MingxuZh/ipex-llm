@@ -11,12 +11,14 @@ export volume=$PWD/data
 
 cd $PWD/data
 wget https://raw.githubusercontent.com/MingxuZh/ipex-llm/main/tgi_indocker.sh
+touch serve.log
 cd $PWD
 
 sudo docker run -dt --shm-size 1g -p 8088:80 -d --cap-add=sys_nice --ipc=host -v $volume:/data ccr-registry.caas.intel.com/pytorch/pytorch-ipex-spr:tgi_xeon bash /data/tgi_indocker.sh || true
 
 # sleep 220s
-while [ -f /localdisk2/mint/text-generation-inference/data/serve.log ]
+# while [ -f /localdisk2/mint/text-generation-inference/data/serve.log ]
+while 1
 do
         echo "exist"
         if [ `grep -c "Invalid hostname, defaulting to 0.0.0.0" /localdisk2/mint/text-generation-inference/data/serve.log` -ne '0' ];then
