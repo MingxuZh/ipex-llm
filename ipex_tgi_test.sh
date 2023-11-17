@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -ex
 
 # cd /bhavanis
 # git clone -b main https://github.com/jianan-gu/text-generation-inference
@@ -22,6 +21,7 @@ while true
 do
         
         if [ `grep -c "Invalid hostname, defaulting to 0.0.0.0" /localdisk2/mint/text-generation-inference/data/serve.log` -ne '0' ];then
+                set -ex
                 echo "Yes"
                 curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":32, "do_sample": false}}' -H 'Content-Type: application/json' | tee -a /localdisk2/mint/text-generation-inference/data/client1.log
                 while [ -f /localdisk2/mint/text-generation-inference/data/client1.log ]
