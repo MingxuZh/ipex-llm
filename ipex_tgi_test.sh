@@ -10,6 +10,8 @@ export volume=$PWD/data
 export repopath=$PWD
 
 cd $PWD/data
+export https_proxy=http://proxy-chain.intel.com:911
+export http_proxy=http://proxy-chain.intel.com:911
 wget https://raw.githubusercontent.com/MingxuZh/ipex-llm/main/tgi_indocker.sh
 touch serve.log
 cd $PWD
