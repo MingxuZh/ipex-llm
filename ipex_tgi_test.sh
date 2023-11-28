@@ -9,7 +9,7 @@ cd text-generation-inference
 mkdir $PWD/data
 export volume=$PWD/data
 export REPOPATH=$PWD
-
+echo $REPOPATH
 sudo chmod 777 $volume -R
 
 cd $PWD/data
@@ -17,7 +17,8 @@ export https_proxy=http://proxy-chain.intel.com:911
 export http_proxy=http://proxy-chain.intel.com:911
 wget https://raw.githubusercontent.com/MingxuZh/ipex-llm/main/tgi_indocker.sh
 touch serve.log
-cd $PWD
+
+cd ..
 
 sudo docker run -dt --shm-size 1g -p 8088:80 -d --cap-add=sys_nice --ipc=host -v $volume:/data ccr-registry.caas.intel.com/pytorch/pytorch-ipex-spr:tgi_xeon bash /data/tgi_indocker.sh || true
 
