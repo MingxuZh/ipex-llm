@@ -5,7 +5,7 @@ git clone -b main https://github.com/jianan-gu/text-generation-inference
 cd text-generation-inference
 
 # sudo docker build --build-arg http_proxy=http://proxy-chain.intel.com:911 --build-arg https_proxy=http://proxy-chain.intel.com:911 --build-arg no_proxy='*.intel.com' -t tgi_xeon .
-# mkdir $PWD/data
+mkdir $PWD/data
 export volume=$PWD/data
 export repopath=$PWD
 
