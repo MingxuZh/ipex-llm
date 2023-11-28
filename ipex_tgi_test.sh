@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 
-cd /data1/TGI
+export repopath=/data1/TGI
+cd $repopath
 git clone -b main https://github.com/jianan-gu/text-generation-inference
 cd text-generation-inference
 
 # sudo docker build --build-arg http_proxy=http://proxy-chain.intel.com:911 --build-arg https_proxy=http://proxy-chain.intel.com:911 --build-arg no_proxy='*.intel.com' -t tgi_xeon .
 mkdir $PWD/data
 export volume=$PWD/data
-export repopath=$PWD
+# export repopath=$PWD
 
 sudo chmod 777 $volume -R
 
@@ -24,16 +25,16 @@ sudo docker run -dt --shm-size 1g -p 8088:80 -d --cap-add=sys_nice --ipc=host -v
 # while [ -f /localdisk2/mint/text-generation-inference/data/serve.log ]
 while true
 do
-        
+
         if [ `grep -c "Invalid hostname, defaulting to 0.0.0.0" $repopath/data/serve.log` -ne '0' ];then
                 set -ex
                 echo "Yes"
-                curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":32, "do_sample": false}}' -H 'Content-Type: application/json' | tee -a $repopath/data/client1.log
+                sudo curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":32, "do_sample": false}}' -H 'Content-Type: application/json' | tee -a $repopath/data/client1.log
                 while [ -f $repopath/data/client1.log ]
                 do 
                         if [ `grep -c "generated_text" client1.log` -ne '0' ];then
                                 echo "client1.log"
-                                curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":32, "do_sample": false}}' -H 'Content-Type: application/json' | tee -a $repopath/data/client2.log
+                                sudo curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":32, "do_sample": false}}' -H 'Content-Type: application/json' | tee -a $repopath/data/client2.log
                                 while [ -f $repopath/data/client2.log ]
                                 do
                                         if [ `grep -c "generated_text" client2.log` -ne '0' ];then
