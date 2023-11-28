@@ -9,6 +9,8 @@ mkdir $PWD/data
 export volume=$PWD/data
 export repopath=$PWD
 
+sudo chmod 777 $volume -R
+
 cd $PWD/data
 export https_proxy=http://proxy-chain.intel.com:911
 export http_proxy=http://proxy-chain.intel.com:911
