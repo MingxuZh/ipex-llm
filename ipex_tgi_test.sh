@@ -10,7 +10,7 @@ mkdir $PWD/data
 export volume=$PWD/data
 export REPOPATH=$PWD
 echo $REPOPATH
-sudo chmod 777 $volume -R
+# sudo chmod 777 $volume -R
 
 cd $PWD/data
 export https_proxy=http://proxy-chain.intel.com:911
@@ -18,7 +18,7 @@ export http_proxy=http://proxy-chain.intel.com:911
 wget https://raw.githubusercontent.com/MingxuZh/ipex-llm/main/tgi_indocker.sh
 touch serve.log
 
-cd ..
+cd $PWD
 
 sudo docker run -dt --shm-size 1g -p 8088:80 -d --cap-add=sys_nice --ipc=host -v $volume:/data ccr-registry.caas.intel.com/pytorch/pytorch-ipex-spr:tgi_xeon bash /data/tgi_indocker.sh || true
 
@@ -30,6 +30,7 @@ do
         if [ `grep -c "Invalid hostname, defaulting to 0.0.0.0" $REPOPATH/data/serve.log` -ne '0' ];then
                 set -ex
                 echo "Yes"
+                echo $REPOPATH
                 curl 127.0.0.1:8088/generate -X POST -d '{"inputs":"What is Deep Learning?","parameters":{"max_new_tokens":32, "do_sample": false}}' -H 'Content-Type: application/json' | tee -a $REPOPATH/data/client1.log
                 while [ -f $REPOPATH/data/client1.log ]
                 do 
