@@ -19,4 +19,4 @@ huggingface-cli login --token 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
 
 # nohup numactl -C 0-55 -m 0 text-generation-launcher -p 80 --model-id huggyllama/llama-7b --dtype bfloat16 >> /data/serve.log 2>&1 || true &
 
-nohup numactl -C 0-55 -m 0 text-generation-launcher -p 80 --model-id meta-llama/Llama-2-7b-hf --dtype bfloat16 2>&1 | tee -a /data/serve.log
+nohup numactl -C 0-55 -m 0 text-generation-launcher -p 80 --model-id EleutherAI/gpt-j-6B --dtype bfloat16 2>&1 | tee -a /data/serve.log
