@@ -5,6 +5,7 @@ import re
 import torch
 from pathlib import Path
 import intel_extension_for_pytorch as ipex
+
 import deepspeed
 from deepspeed.accelerator import get_accelerator
 import deepspeed.comm as dist
@@ -16,6 +17,8 @@ from transformers import (
     AutoTokenizer,
     LlamaTokenizer,
 )
+
+
 MODEL_CLASSES = {
     "gpt-j": (AutoModelForCausalLM, AutoTokenizer),
     "gpt-neox": (AutoModelForCausalLM, AutoTokenizer),
@@ -25,6 +28,7 @@ MODEL_CLASSES = {
     "codegen": (AutoModelForCausalLM, AutoTokenizer),
     "auto": (AutoModelForCausalLM, AutoTokenizer),
 }
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", nargs="?", default="EleutherAI/gpt-j-6b")
 parser.add_argument("--output_dir", nargs="?", default="./saved_results")
@@ -88,7 +92,10 @@ parser.add_argument(
     type=str,
     help="weight data type for weight only quantization. Unrelated to activation data type or lowp-mode.",
 )
+
 args = parser.parse_args()
+
+
 def get_int_from_env(env_keys, default):
     """Returns the first positive env value found in the `env_keys` list or the default."""
     for e in env_keys:
@@ -96,19 +103,27 @@ def get_int_from_env(env_keys, default):
         if val >= 0:
             return val
     return default
+
+
 local_rank = get_int_from_env(["LOCAL_RANK", "MPI_LOCALRANKID"], "0")
 world_size = get_int_from_env(["WORLD_SIZE", "PMI_SIZE"], "1")
+
 deepspeed.init_distributed(get_accelerator().communication_backend_name())
+
 print("init_distributed done")
+
 if args.accuracy_only:
     import lm_eval
     from lm_eval import evaluator
     from lm_eval.base import BaseLM
     from typing import Union, List, Optional
     from transformers import BatchEncoding
+
     TokenSequence = Union[List[int], torch.LongTensor, torch.Tensor, BatchEncoding]
+
     class HuggingFaceModel(BaseLM):
         _DEFAULT_MAX_LENGTH = 2048
+
         def __init__(
             self,
             device="cpu",
@@ -123,6 +138,7 @@ if args.accuracy_only:
             config=None,
         ):
             super().__init__()
+
             self._device = device
             self._batch_size = batch_size
             self._with_jit = with_jit
@@ -131,6 +147,7 @@ if args.accuracy_only:
             self._max_length = max_length
             self._dtype = dtype
             self._tp_number = tp_number
+
             if args.int8_bf16_mixed:
                 load_dtype = torch.bfloat16
                 infer_dtype = torch.bfloat16
@@ -147,12 +164,15 @@ if args.accuracy_only:
                 elif dtype == "float32":
                     load_dtype = torch.float32
                     infer_dtype = torch.float32
+
             amp_enabled = True if dtype != "float32" else False
             amp_dtype = getattr(torch, dtype)
+
             model_type = next(
                 (x for x in MODEL_CLASSES.keys() if x in model_id.lower()), "auto"
             )
             model_class = MODEL_CLASSES[model_type]
+
             self.tokenizer = model_class[1].from_pretrained(
                 model_id, trust_remote_code=True
             )
@@ -170,17 +190,6 @@ if args.accuracy_only:
                     model_id,
                     config=config,
                     low_cpu_mem_usage=True,
-
-    
-          
-            
-    
-
-          
-          Expand Down
-    
-    
-  
                     torch_dtype=load_dtype,
                     trust_remote_code=True,
                 )
@@ -200,12 +209,16 @@ if args.accuracy_only:
                             torch_dtype=load_dtype,
                             trust_remote_code=True,
                         )
+
             self.model = self.model.eval()
+
             checkpoints_json = "checkpoints.json"
+
             def print_rank0(*msg):
                 if local_rank != 0:
                     return
                 print(*msg)
+
             def get_repo_root(model_name_or_path):
                 if os.path.exists(model_name_or_path):
                     # local path
@@ -230,7 +243,9 @@ if args.accuracy_only:
                         allow_patterns=allow_patterns,
                         # ignore_patterns=["*.safetensors"],
                     )
+
                 dist.barrier()
+
                 return snapshot_download(
                     model_name_or_path,
                     local_files_only=is_offline_mode(),
@@ -238,8 +253,10 @@ if args.accuracy_only:
                     allow_patterns=allow_patterns,
                     # ignore_patterns=["*.safetensors"],
                 )
+
             def get_checkpoint_files(model_name_or_path):
                 cached_repo_dir = get_repo_root(model_name_or_path)
+
                 # extensions: .bin | .pt
                 # creates a list of paths from all downloaded files in cache dir
                 file_list = [
@@ -248,6 +265,7 @@ if args.accuracy_only:
                     if entry.is_file()
                 ]
                 return file_list
+
             def write_checkpoints_json():
                 checkpoint_files = get_checkpoint_files(model_id)
                 if local_rank == 0:
@@ -258,8 +276,10 @@ if args.accuracy_only:
                         "version": 1.0,
                     }
                     json.dump(data, open(checkpoints_json, "w"))
+
             repo_root = get_repo_root(model_id)
             write_checkpoints_json()
+
             self.model = deepspeed.init_inference(
                 self.model,
                 mp_size=tp_number,
@@ -267,13 +287,16 @@ if args.accuracy_only:
                 dtype=infer_dtype,
                 checkpoint=checkpoints_json,
             )
+
             self.model = self.model.module
+
             if args.ipex:
                 ipex_woq_enabled = args.ipex_weight_only_quantization
                 if ipex_woq_enabled:
                     weight_dtype = (
                         torch.quint4x2 if args.weight_dtype == "INT4" else torch.qint8
                     )
+
                     if args.lowp_mode == "INT8":
                         lowp_mode = ipex.quantization.WoqLowpMode.INT8
                     elif args.lowp_mode == "FP32":
@@ -287,6 +310,7 @@ if args.accuracy_only:
                             lowp_mode = ipex.quantization.WoqLowpMode.INT8
                         else:
                             lowp_mode = ipex.quantization.WoqLowpMode.BF16
+
                     qconfig = ipex.quantization.get_weight_only_quant_qconfig_mapping(
                         weight_dtype=weight_dtype, lowp_mode=lowp_mode
                     )
@@ -297,14 +321,18 @@ if args.accuracy_only:
                     inplace=True,
                     deployment_mode=False,
                 )
+
             self.base_model = self.model
+
             self.num_beams = 1 if with_greedy else 4
             self.iter = 0
+
         def _model_call(
             self, inputs: TokenSequence, labels: Optional[TokenSequence] = None
         ) -> TokenSequence:
             _attention_mask = []
             _position_ids = []
+
             if self._with_jit:
                 for text in inputs:
                     input_ids = text.to(self._device)
@@ -542,10 +570,13 @@ if args.accuracy_only:
                         )
                     position_ids = torch.arange(len(input_ids))
                     attention_mask = torch.ones(len(input_ids))
+
                     _attention_mask.append(attention_mask)
                     _position_ids.append(position_ids)
+
                 attention_mask_batched = torch.stack(_attention_mask)
                 position_ids_batched = torch.stack(_position_ids)
+
             if self._with_jit and self.iter == 0:
                 with torch.inference_mode(), torch.no_grad(), torch.cpu.amp.autocast(
                     enabled=True
@@ -582,6 +613,7 @@ if args.accuracy_only:
                                 "position_ids": position_ids_batched,
                                 "past_key_values": past_key_values,
                             }
+
                             self.model = torch.jit.trace(
                                 self.model.eval(),
                                 example_kwarg_inputs=example_dict,
@@ -592,6 +624,7 @@ if args.accuracy_only:
                     else:
                         self.model = torch.jit.load(args.quantized_model_path)
                         self.model = torch.jit.freeze(self.model.eval())
+
                     if (
                         re.search(
                             "OPT",
@@ -630,7 +663,9 @@ if args.accuracy_only:
                             attention_mask=attention_mask_batched,
                             position_ids=position_ids_batched,
                         )
+
                 self.iter = self.iter + 1
+
             if (
                 re.search("OPT", self.base_model.config.architectures[0], re.IGNORECASE)
                 or re.search(
@@ -672,13 +707,17 @@ if args.accuracy_only:
                         output = self.base_model(
                             inputs,
                         )
+
             if isinstance(output, tuple):
                 return output[0]
+
             return output["logits"]
+
         @property
         def eot_token_id(self):
             # we use EOT because end of *text* is more accurate for what we're doing than end of *sentence*
             return self.tokenizer.eos_token_id
+
         @property
         def max_length(self):
             if self._max_length:  # if max length manually set, return it
@@ -691,22 +730,29 @@ if args.accuracy_only:
                 if self.tokenizer.model_max_length == 1000000000000000019884624838656:
                     return self._DEFAULT_MAX_LENGTH
                 return self.tokenizer.model_max_length
+
             return self._DEFAULT_MAX_LENGTH
+
         @property
         def max_gen_toks(self):
             return 256
+
         @property
         def batch_size(self):
             # TODO: fix multi-gpu
             return self._batch_size  # * gpus
+
         @property
         def device(self):
             # TODO: fix multi-gpu
             return self._device
+
         def tok_encode(self, string: str):
             return self.tokenizer.encode(string, add_special_tokens=False)
+
         def tok_decode(self, tokens):
             return self.tokenizer.decode(tokens)
+
         def _model_generate(self, context, max_length, eos_token_id):
             generation_kwargs = {"do_sample": False, "max_length": max_length}
             if eos_token_id is not None:
@@ -715,6 +761,7 @@ if args.accuracy_only:
                     "pad_token_id"
                 ] = eos_token_id  # setting eos_token_id as pad token
             return self.model.generate(context, **generation_kwargs)
+
     task_dict = lm_eval.tasks.get_task_dict(args.tasks)
     torch._C._jit_set_texpr_fuser_enabled(False)
     hfmodel = HuggingFaceModel(
@@ -727,10 +774,12 @@ if args.accuracy_only:
         tp_number=world_size,
         config=args.config_file,
     )
+
     results = evaluator.evaluate(
         hfmodel,
         task_dict,
         #        bootstrap_iters=1000,
         #        limit=100
     )
+
     print(evaluator.make_table(results))
