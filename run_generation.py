@@ -195,6 +195,7 @@ if args.benchmark:
             input_tokens_lengths = [x.shape[0] for x in input_ids]
             print("gen_ids",gen_ids)
             output_tokens_lengths = [x.shape[0] for x in gen_ids]
+            print("output_tokens_lengths", output_tokens_lengths)
             total_new_tokens = [
                 o - i if model.config.model_type != "t5" else o
                 for i, o in zip(input_tokens_lengths, output_tokens_lengths)
