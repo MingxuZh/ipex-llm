@@ -205,6 +205,7 @@ if args.benchmark:
             if i >= num_warmup:
                 total_time += toc - tic
                 if args.token_latency:
+                    print("output", output)
                     total_list.append(output[1])
 
     print("\n", "-" * 10, "Summary:", "-" * 10)
