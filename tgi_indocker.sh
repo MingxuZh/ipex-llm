@@ -26,7 +26,8 @@ pip install torch==2.1
 pip install http://mlpc.intel.com/downloads/cpu/ipex-2.1/ipex_release/rc2/intel_extension_for_pytorch-2.1.0+cpu-cp39-cp39-linux_x86_64.whl
 
 export TRANSFORMERS_OFFLINE=0
-pip install --upgrade huggingface_hub
+# pip install --upgrade huggingface_hub
+pip install huggingface-hub==0.16.4
 huggingface-cli login --token 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
 
 # nohup numactl -C 0-55 -m 0 text-generation-launcher -p 80 --model-id EleutherAI/gpt-j-6B huggyllama/llama-7b --dtype bfloat16 >> /data/serve.log 2>&1 || true &
