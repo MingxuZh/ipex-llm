@@ -10,6 +10,7 @@ apt-get install -y numactl
 nowpath=$PWD
 
 apt-get install -y wget
+apt-get install git
 
 wget https://github.com/gperftools/gperftools/releases/download/gperftools-2.7.90/gperftools-2.7.90.tar.gz
 tar -xzf gperftools-2.7.90.tar.gz 
@@ -20,15 +21,16 @@ make install
 
 cp -r $HOME/.local/lib/libtcmalloc.so ${CONDA_PREFIX}/lib/libtcmalloc.so
 
-
-pip uninstall -y torch
 pip install cmake lit
+pip uninstall -y torch
+
 pip install https://download.pytorch.org/whl/nightly/cpu/torch-2.2.0.dev20231007%2Bcpu-cp39-cp39-linux_x86_64.whl
 # pip install torch==2.2.0.dev20231007+cpu --index-url https://download.pytorch.org/whl/nightly/cpu
 
 # git clone   https://github.com/intel-innersource/frameworks.ai.pytorch.ipex-cpu -b llm_feature_branch
 # cd frameworks.ai.pytorch.ipex-cpu
 # git submodule update --init --recursive
+git config --global --add safe.directory /data/frameworks.ai.pytorch.ipex-cpu
 cd /data/frameworks.ai.pytorch.ipex-cpu
 python setup.py install
 pip install https://download.pytorch.org/whl/nightly/pytorch_triton-2.1.0%2B6e4932cda8-cp39-cp39-linux_x86_64.whl
