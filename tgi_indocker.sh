@@ -10,7 +10,7 @@ apt-get install -y numactl
 nowpath=$PWD
 
 apt-get install -y wget
-apt-get install git
+apt-get install -y git
 
 wget https://github.com/gperftools/gperftools/releases/download/gperftools-2.7.90/gperftools-2.7.90.tar.gz
 tar -xzf gperftools-2.7.90.tar.gz 
