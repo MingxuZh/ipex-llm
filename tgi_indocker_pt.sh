@@ -22,16 +22,8 @@ cp -r $HOME/.local/lib/libtcmalloc.so ${CONDA_PREFIX}/lib/libtcmalloc.so
 
 
 pip uninstall -y torch
-pip install torch==2.2.0.dev20231007+cpu --index-url https://download.pytorch.org/whl/nightly/cpu
-
-git clone   https://github.com/intel-innersource/frameworks.ai.pytorch.ipex-cpu -b llm_feature_branch
-cd frameworks.ai.pytorch.ipex-cpu
-git submodule update --init --recursive
-python setup.py install
-pip install https://download.pytorch.org/whl/nightly/pytorch_triton-2.1.0%2B6e4932cda8-cp39-cp39-linux_x86_64.whl
-
-pip uninstall -y torch # install torch with cuda version to support flash
-pip install https://download.pytorch.org/whl/nightly/cu118/torch-2.2.0.dev20231007%2Bcu118-cp39-cp39-linux_x86_64.whl
+pip install torch==2.1
+pip install http://mlpc.intel.com/downloads/cpu/ipex-2.1/ipex_release/rc2/intel_extension_for_pytorch-2.1.0+cpu-cp39-cp39-linux_x86_64.whl
 
 export TRANSFORMERS_OFFLINE=0
 # pip install --upgrade huggingface_hub
