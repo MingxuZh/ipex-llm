@@ -9,6 +9,18 @@ apt-get install -y numactl
 # apt-get install tee
 nowpath=$PWD
 
+apt-get install -y wget
+
+wget https://github.com/gperftools/gperftools/releases/download/gperftools-2.7.90/gperftools-2.7.90.tar.gz
+tar -xzf gperftools-2.7.90.tar.gz 
+cd gperftools-2.7.90
+./configure --prefix=$HOME/.local
+make
+make install
+
+cp -r $HOME/.local/lib/libtcmalloc.so ${CONDA_PREFIX}/lib/libtcmalloc.so
+
+
 pip uninstall -y torch
 pip install torch==2.1
 pip install http://mlpc.intel.com/downloads/cpu/ipex-2.1/ipex_release/rc2/intel_extension_for_pytorch-2.1.0+cpu-cp39-cp39-linux_x86_64.whl
