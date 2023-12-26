@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -ex
 
-export https_proxy=http://proxy-chain.intel.com:911
-export http_proxy=http://proxy-chain.intel.com:911
+export http_proxy=http://proxy-dmz.intel.com:912
+export https_proxy=http://proxy-dmz.intel.com:912
 
 model=${1:-"meta-llama/Llama-2-7b-hf"}
 dtype=${2:-bfloat16}
