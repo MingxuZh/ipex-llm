@@ -4,6 +4,9 @@ set -ex
 export https_proxy=http://proxy-chain.intel.com:911
 export http_proxy=http://proxy-chain.intel.com:911
 
+model=${1:-"meta-llama/Llama-2-7b-hf"}
+dtype=${2:-bfloat16}
+
 apt-get update
 apt-get install -y vim
 apt-get install -y numactl
@@ -62,4 +65,4 @@ export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libiomp5.so
 export LD_PRELOAD=${CONDA_PREFIX}/lib/libstdc++.so.6
 
 
-nohup OMP_NUM_THREADS=56 numactl -C 0-55 -m 0 text-generation-launcher -p 80 --model-id meta-llama/Llama-2-7b-hf --dtype bfloat16 2>&1 | tee -a /data/serve.log
+nohup OMP_NUM_THREADS=56 numactl -C 0-55 -m 0 text-generation-launcher -p 80 --model-id ${model} --dtype ${dtype} 2>&1 | tee -a /data/serve.log
