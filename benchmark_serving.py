@@ -112,13 +112,13 @@ def sample_requests(
         outputlist = array_1536
 
     for j in range(len(sampled_requests)):
-        prompt_len, output_len = sampled_requests[i][:2]
-        new_sample = []
-        new_sample.append((prompt_len, output_len, outputlist[j]))
+        prompt_len, output_len = sampled_requests[j][:2]
+        sampled_requests[j] = (prompt_len, output_len, int(outputlist[j % len(outputlist)]))
 
 
 
-    return new_sample
+
+    return sampled_requests
 
 
 async def get_request(
