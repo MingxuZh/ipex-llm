@@ -61,7 +61,7 @@ REQUEST_LATENCY: List[Tuple[int, int, float]] = []
 
 # for throughput benchmark
 max_value = args.num_continuous
-array_size = 1000
+array_size = args.num_prompts
 positive_integers = np.random.randint(1, max_value + 1, size=array_size)
 
 # positive_integers = np.ceil(random_numbers).astype(int)
@@ -129,7 +129,7 @@ def sample_requests(
 
     # Sample the requests.
     sampled_requests = random.sample(filtered_dataset, num_requests)
-    print("sampled_requests:", sampled_requests)
+    
     
     # if args.num_continuous == 32:
     #     outputlist = array_32
@@ -141,13 +141,12 @@ def sample_requests(
     #     outputlist = array_1536
 
     for j in range(len(sampled_requests)):
-        prompt_len, output_len = sampled_requests[i][:2]
-        new_sample = []
-        new_sample.append((prompt_len, output_len, positive_integers[j]))
+        prompt_len, output_len = sampled_requests[j][:2]
+        sampled_requests[j] = (prompt_len, output_len, int(outputlist[j % len(outputlist)]))
 
-
-
-    return new_sample
+    print("sampled_requests:", sampled_requests)
+    print("len sampled_requests:", len(sampled_requests))
+    return sampled_requests
 
 
 async def get_request(
