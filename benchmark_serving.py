@@ -27,28 +27,57 @@ import numpy as np
 from transformers import PreTrainedTokenizerBase
 from vllm.transformers_utils.tokenizer import get_tokenizer
 
+parser = argparse.ArgumentParser(
+    description="Benchmark the online serving throughput.")
+parser.add_argument("--backend", type=str, default="vllm",
+                    choices=["vllm", "tgi"])
+parser.add_argument("--host", type=str, default="localhost")
+parser.add_argument("--port", type=int, default=8000)
+parser.add_argument("--dataset", type=str, required=True,
+                    help="Path to the dataset.")
+parser.add_argument("--tokenizer", type=str, required=True,
+                    help="Name or path of the tokenizer.")
+parser.add_argument("--best-of", type=int, default=1,
+                    help="Generates `best_of` sequences per prompt and "
+                            "returns the best one.")
+parser.add_argument("--use-beam-search", action="store_true")
+parser.add_argument("--num-prompts", type=int, default=1000,
+                    help="Number of prompts to process.")
+parser.add_argument("--num-continuous", type=int, default=32,
+                    help="Number of prompts to process.")
+parser.add_argument("--request-rate", type=float, default=float("inf"),
+                    help="Number of requests per second. If this is inf, "
+                            "then all the requests are sent at time 0. "
+                            "Otherwise, we use Poisson process to synthesize "
+                            "the request arrival times.")
+parser.add_argument("--seed", type=int, default=0)
+parser.add_argument('--trust-remote-code', action='store_true',
+                    help='trust remote code from huggingface')
+args = parser.parse_args()
+
+
 # (prompt len, output len, latency)
 REQUEST_LATENCY: List[Tuple[int, int, float]] = []
 
 # for throughput benchmark
-mean_value = 128
+max_value = args.num_continuous
 array_size = 1000
-random_numbers = np.random.exponential(scale=mean_value, size=array_size)
+positive_integers = np.random.randint(1, max_value + 1, size=array_size)
 
-positive_integers = np.ceil(random_numbers).astype(int)
+# positive_integers = np.ceil(random_numbers).astype(int)
 
 print(positive_integers)
 
 
-array_32 = positive_integers[positive_integers <= 32]
-array_128 = positive_integers[positive_integers <= 128]
-array_512 = positive_integers[positive_integers <= 512]
-array_1536 = positive_integers[positive_integers <= 1536]
+# array_32 = positive_integers[positive_integers <= 32]
+# array_128 = positive_integers[positive_integers <= 128]
+# array_512 = positive_integers[positive_integers <= 512]
+# array_1536 = positive_integers[positive_integers <= 1536]
 
-print("Array <= 32:", array_32, len(array_32))
-print("Array <= 128:", array_128, len(array_128))
-print("Array <= 512:", array_512, len(array_512))
-print("Array <= 1536:", array_1536, len(array_1536))
+# print("Array <= 32:", array_32, len(array_32))
+# print("Array <= 128:", array_128, len(array_128))
+# print("Array <= 512:", array_512, len(array_512))
+# print("Array <= 1536:", array_1536, len(array_1536))
 
 
 
@@ -102,23 +131,23 @@ def sample_requests(
     sampled_requests = random.sample(filtered_dataset, num_requests)
     print("sampled_requests:", sampled_requests)
     
-    if args.num_continuous == 32:
-        outputlist = array_32
-    elif args.num_continuous == 128:
-        outputlist = array_128
-    elif args.num_continuous == 512:
-        outputlist = array_512
-    elif args.num_continuous == 1536:
-        outputlist = array_1536
+    # if args.num_continuous == 32:
+    #     outputlist = array_32
+    # elif args.num_continuous == 128:
+    #     outputlist = array_128
+    # elif args.num_continuous == 512:
+    #     outputlist = array_512
+    # elif args.num_continuous == 1536:
+    #     outputlist = array_1536
 
     for j in range(len(sampled_requests)):
-        prompt_len, output_len = sampled_requests[j][:2]
-        sampled_requests[j] = (prompt_len, output_len, int(outputlist[j % len(outputlist)]))
+        prompt_len, output_len = sampled_requests[i][:2]
+        new_sample = []
+        new_sample.append((prompt_len, output_len, positive_integers[j]))
 
 
 
-
-    return sampled_requests
+    return new_sample
 
 
 async def get_request(
@@ -245,41 +274,5 @@ def main(args: argparse.Namespace):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Benchmark the online serving throughput.")
-    parser.add_argument("--backend", type=str, default="vllm",
-                        choices=["vllm", "tgi"])
-    parser.add_argument("--host", type=str, default="localhost")
-    parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--dataset", type=str, required=True,
-                        help="Path to the dataset.")
-    parser.add_argument("--tokenizer", type=str, required=True,
-                        help="Name or path of the tokenizer.")
-    parser.add_argument("--best-of", type=int, default=1,
-                        help="Generates `best_of` sequences per prompt and "
-                             "returns the best one.")
-    parser.add_argument("--use-beam-search", action="store_true")
-    parser.add_argument("--num-prompts", type=int, default=1000,
-                        help="Number of prompts to process.")
-    parser.add_argument("--num-continuous", type=int, default=32,
-                        help="Number of prompts to process.")
-    parser.add_argument("--request-rate", type=float, default=float("inf"),
-                        help="Number of requests per second. If this is inf, "
-                             "then all the requests are sent at time 0. "
-                             "Otherwise, we use Poisson process to synthesize "
-                             "the request arrival times.")
-    parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument('--trust-remote-code', action='store_true',
-                        help='trust remote code from huggingface')
-    args = parser.parse_args()
-
-    if args.num_continuous == 32:
-        args.num_prompts = len(array_32)
-    elif args.num_continuous == 128:
-        args.num_prompts = len(array_128)
-    elif args.num_continuous == 512:
-        args.num_prompts = len(array_512)
-    elif args.num_continuous == 1536:
-        args.num_prompts = len(array_1536)
 
     main(args)
