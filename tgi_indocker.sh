@@ -63,6 +63,7 @@ export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libtcmalloc.so
 export LD_PRELOAD=${LD_PRELOAD}:${CONDA_PREFIX}/lib/libiomp5.so
 
 export LD_PRELOAD=${CONDA_PREFIX}/lib/libstdc++.so.6
+export LOG_LEVEL=info,text_generation_router=debug,text_generation_launcher=debug
 export OMP_NUM_THREADS=56 
 
 nohup numactl -C 0-55 -m 0 text-generation-launcher -p 80 --model-id ${model} --dtype ${dtype} 2>&1 | tee -a /data/serve.log
