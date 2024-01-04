@@ -198,7 +198,7 @@ async def send_request(
             "do_sample": False,
         }
         pload = {
-            "inputs": "Once upon a time, there existed a little girl, who liked to have adventures. She wanted to go to places and meet new people, and have fun.",
+            "inputs": prompt,
             "parameters": params,
         }
     else:
@@ -234,7 +234,7 @@ async def benchmark(
     tasks: List[asyncio.Task] = []
     async for request in get_request(input_requests, request_rate):
         prompt, prompt_len, output_len = request
-        task = asyncio.create_task(send_request(backend, api_url, "Once upon a time, there existed a little girl, who liked to have adventures. She wanted to go to places and meet new people, and have fun.", 32, output_len, best_of, use_beam_search))
+        task = asyncio.create_task(send_request(backend, api_url, prompt, prompt_len, output_len, best_of, use_beam_search))
         tasks.append(task)
     await asyncio.gather(*tasks)
 
