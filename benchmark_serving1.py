@@ -56,7 +56,6 @@ def sample_requests(
     completions = [completion for _, completion in dataset]
     completion_token_ids = tokenizer(completions).input_ids
     tokenized_dataset = []
-    print("len dataset", len(dataset))
     for i in range(len(dataset)):
         # output_len = len(completion_token_ids[i])
         output_len = args.len
@@ -66,8 +65,6 @@ def sample_requests(
     filtered_dataset: List[Tuple[str, int, int]] = []
     for prompt, prompt_token_ids, output_len in tokenized_dataset:
         prompt_len = len(prompt_token_ids)
-        print("len2",prompt_len)
-        print("len3",output_len)
         if prompt_len < 4 or output_len < 4:
             # Prune too short sequences.
             # This is because TGI causes errors when the input or output length
@@ -79,7 +76,7 @@ def sample_requests(
         filtered_dataset.append((prompt, prompt_len, output_len))
 
     # Sample the requests.
-    print("len", len(filtered_dataset),num_requests)
+
     sampled_requests = random.sample(filtered_dataset, num_requests)
 
     print("sampled_requests_len", len(sampled_requests))
