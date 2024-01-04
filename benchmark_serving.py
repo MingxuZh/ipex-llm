@@ -142,7 +142,7 @@ def sample_requests(
 
     for j in range(len(sampled_requests)):
         prompt_len, output_len = sampled_requests[j][:2]
-        sampled_requests[j] = (prompt_len, output_len, int(outputlist[j % len(outputlist)]))
+        sampled_requests[j] = (prompt_len, output_len, int(positive_integers[j % len(positive_integers)]))
 
     print("sampled_requests:", sampled_requests)
     print("len sampled_requests:", len(sampled_requests))
