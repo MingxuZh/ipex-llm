@@ -144,8 +144,7 @@ def sample_requests(
         prompt_len, output_len = sampled_requests[j][:2]
         sampled_requests[j] = (prompt_len, output_len, int(positive_integers[j % len(positive_integers)]))
 
-    print("sampled_requests:", sampled_requests)
-    print("len sampled_requests:", len(sampled_requests))
+
     return sampled_requests
 
 
@@ -234,6 +233,7 @@ async def benchmark(
     tasks: List[asyncio.Task] = []
     async for request in get_request(input_requests, request_rate):
         prompt, prompt_len, output_len = request
+        print("send_requests:", prompt, prompt_len, output_len)
         task = asyncio.create_task(send_request(backend, api_url, prompt, prompt_len, output_len, best_of, use_beam_search))
         tasks.append(task)
     await asyncio.gather(*tasks)
