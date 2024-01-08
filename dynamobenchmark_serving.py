@@ -141,8 +141,8 @@ def sample_requests(
     #     outputlist = array_1536
 
     for j in range(len(sampled_requests)):
-        prompt_len, output_len = sampled_requests[j][:2]
-        sampled_requests[j] = (prompt_len, output_len, int(positive_integers[j % len(positive_integers)]))
+        prompt_len, prompt_len = sampled_requests[j][:2]
+        sampled_requests[j] = (prompt_len, prompt_len, int(positive_integers[j % len(positive_integers)]))
 
 
     return sampled_requests
