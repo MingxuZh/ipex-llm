@@ -20,7 +20,7 @@ else
     echo "Conda environment is not available. You need to set environment variable LD_PRELOAD to dynamic libraries of Intel OpenMP and TcMalloc manually."
 fi
 
-ONECCL_PATH=${BASEFOLDER}/build/_install
+ONECCL_PATH=${BASEFOLDER}/oneCCL/build/_install
 if [ ! -d ${ONECCL_PATH} ]; then
     echo "oneCCL is not available."
 else
