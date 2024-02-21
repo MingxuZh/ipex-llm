@@ -31,9 +31,9 @@ cp -r $HOME/.local/lib/libtcmalloc.so ${CONDA_PREFIX}/lib/libtcmalloc.so
 pip install cmake lit
 pip uninstall -y torch
 
-python -m pip install torch --index-url https://download.pytorch.org/whl/nightly/cpu
+# python -m pip install torch --index-url https://download.pytorch.org/whl/nightly/cpu
 # pip install https://download.pytorch.org/whl/nightly/cpu/torch-2.2.0.dev20231007%2Bcpu-cp39-cp39-linux_x86_64.whl
-# pip install torch==2.2.0.dev20231007+cpu --index-url https://download.pytorch.org/whl/nightly/cpu
+python -m pip install torch==2.3.0.dev20240107+cpu --index-url https://download.pytorch.org/whl/nightly/cpu
 
 # git clone   https://github.com/intel-innersource/frameworks.ai.pytorch.ipex-cpu -b llm_feature_branch
 # cd frameworks.ai.pytorch.ipex-cpu
