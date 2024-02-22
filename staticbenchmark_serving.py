@@ -70,9 +70,9 @@ def sample_requests(
             # This is because TGI causes errors when the input or output length
             # is too short.
             continue
-        if prompt_len > 1024 or prompt_len + output_len > 2048:
+        # if prompt_len > 1024 or prompt_len + output_len > 2048:
             # Prune too long sequences.
-            continue
+        #     continue
         filtered_dataset.append((prompt, prompt_len, output_len))
 
     # Sample the requests.
