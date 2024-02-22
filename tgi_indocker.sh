@@ -48,9 +48,9 @@ export TRANSFORMERS_OFFLINE=0
 export HF_HOME=/root/.cache/huggingface
 # pip install --upgrade huggingface_hub
 pip install huggingface-hub==0.16.4
-huggingface-cli login --token 
+huggingface-cli login --token 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
 
-# nohup numactl -C 0-55 -m 0 text-generation-launcher -p 80 --model-id EleutherAI/gpt-j-6B huggyllama/llama-7b --dtype bfloat16 >> /data/serve.log 2>&1 || true &
+# nohup numactl -C 0-55 -m 0 text-generation-launcher -p 80 --model-id EleutherAI/gpt-j-6B huggyllama/llama-7b --dtype bfloat16 --max-input-length  4096 --max-total-tokens 8192 >> /data/serve.log 2>&1 || true &
 export KMP_BLOCKTIME=INF
 export KMP_TPAUSE=0
 export KMP_SETTINGS=1
