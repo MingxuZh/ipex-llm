@@ -1,0 +1,212 @@
+diff --git a/src/transformers/generation/utils.py b/src/transformers/generation/utils.py
+index 08fde5850..04814428a 100644
+--- a/src/transformers/generation/utils.py
++++ b/src/transformers/generation/utils.py
+@@ -14,6 +14,7 @@
+ # See the License for the specific language governing permissions and
+ # limitations under the License.
+ 
++import time
+ import copy
+ import inspect
+ import warnings
+@@ -1321,6 +1322,7 @@ class GenerationMixin:
+ 
+         # 1. Handle `generation_config` and kwargs that might update it, and validate the `.generate()` call
+         self._validate_model_class()
++        self.token_latency = self.config.token_latency if hasattr(self.config, "token_latency") else None
+ 
+         # priority: `generation_config` argument > `model.generation_config` (the default generation config)
+         if generation_config is None:
+@@ -1935,8 +1937,9 @@ class GenerationMixin:
+ 
+         this_peer_finished = False  # used by synced_gpus only
+         batch_size = input_ids.shape[0]
+-
++        latency_list = []
+         while True:
++            tic = time.time()
+             if synced_gpus:
+                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
+                 # The following logic allows an early break if all peers finished generating their sequence
+@@ -2205,7 +2208,7 @@ class GenerationMixin:
+                 model_kwargs["past_key_values"] = tuple(past_key_values)
+ 
+             if self.config.is_encoder_decoder:
+-                return GenerateEncoderDecoderOutput(
++                output_result = GenerateEncoderDecoderOutput(
+                     sequences=input_ids,
+                     scores=scores,
+                     logits=raw_logits,
+@@ -2217,7 +2220,7 @@ class GenerationMixin:
+                     past_key_values=model_kwargs.get("past_key_values"),
+                 )
+             else:
+-                return GenerateDecoderOnlyOutput(
++                output_result = GenerateDecoderOnlyOutput(
+                     sequences=input_ids,
+                     scores=scores,
+                     logits=raw_logits,
+@@ -2226,7 +2229,12 @@ class GenerationMixin:
+                     past_key_values=model_kwargs.get("past_key_values"),
+                 )
+         else:
+-            return input_ids
++            output_result = input_ids
++
++        if self.token_latency is not None:
++            return (output_result, latency_list)
++        else:
++            return output_result
+ 
+     def greedy_search(
+         self,
+@@ -2341,6 +2349,7 @@ class GenerationMixin:
+         ["It might be possible to get a better understanding of the nature of the problem, but it's not"]
+         ```"""
+         # init values
++        latency_list = []
+         logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
+         stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
+         if max_length is not None:
+@@ -2387,6 +2396,7 @@ class GenerationMixin:
+ 
+         this_peer_finished = False  # used by synced_gpus only
+         while True:
++            tic = time.time()
+             if synced_gpus:
+                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
+                 # The following logic allows an early break if all peers finished generating their sequence
+@@ -2453,6 +2463,7 @@ class GenerationMixin:
+                 outputs, model_kwargs, is_encoder_decoder=self.config.is_encoder_decoder
+             )
+ 
++            latency_list.append(time.time() - tic)
+             # if eos_token was found in one sentence, set sentence to finished
+             if eos_token_id_tensor is not None:
+                 unfinished_sequences = unfinished_sequences.mul(
+@@ -2678,7 +2689,9 @@ class GenerationMixin:
+ 
+         this_peer_finished = False  # used by synced_gpus only
+         # auto-regressive generation
++        latency_list = []
+         while True:
++            tic = time.time()
+             if synced_gpus:
+                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
+                 # The following logic allows an early break if all peers finished generating their sequence
+@@ -3016,7 +3029,9 @@ class GenerationMixin:
+         this_peer_finished = False  # used by synced_gpus only
+ 
+         decoder_prompt_len = input_ids.shape[-1]  # record the prompt length of decoder
++        latency_list = []
+         while True:
++            tic = time.time()
+             if synced_gpus:
+                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
+                 # The following logic allows an early break if all peers finished generating their sequence
+@@ -3149,7 +3164,7 @@ class GenerationMixin:
+ 
+             # increase cur_len
+             cur_len = cur_len + 1
+-
++            latency_list.append(time.time() - tic)
+             if beam_scorer.is_done or stopping_criteria(input_ids, scores):
+                 if not synced_gpus:
+                     break
+@@ -3173,7 +3188,7 @@ class GenerationMixin:
+                 sequence_outputs["sequence_scores"] = None
+ 
+             if self.config.is_encoder_decoder:
+-                return GenerateBeamEncoderDecoderOutput(
++                output_result = GenerateBeamEncoderDecoderOutput(
+                     sequences=sequence_outputs["sequences"],
+                     sequences_scores=sequence_outputs["sequence_scores"],
+                     scores=scores,
+@@ -3187,7 +3202,7 @@ class GenerationMixin:
+                     past_key_values=model_kwargs.get("past_key_values"),
+                 )
+             else:
+-                return GenerateBeamDecoderOnlyOutput(
++                output_result = GenerateBeamDecoderOnlyOutput(
+                     sequences=sequence_outputs["sequences"],
+                     sequences_scores=sequence_outputs["sequence_scores"],
+                     scores=scores,
+@@ -3198,7 +3213,12 @@ class GenerationMixin:
+                     past_key_values=model_kwargs.get("past_key_values"),
+                 )
+         else:
+-            return sequence_outputs["sequences"]
++            output_result = sequence_outputs["sequences"]
++
++        if self.token_latency is not None:
++            return (output_result, latency_list)
++        else:
++            return output_result
+ 
+     def beam_sample(
+         self,
+@@ -3340,6 +3360,7 @@ class GenerationMixin:
+         ['Wie alt bist du?']
+         ```"""
+         # init values
++        latency_list = []
+         logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
+         stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
+         if max_length is not None:
+@@ -3396,6 +3417,7 @@ class GenerationMixin:
+ 
+         decoder_prompt_len = input_ids.shape[-1]  # record the prompt length of decoder
+         while True:
++            tic = time.time()
+             if synced_gpus:
+                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
+                 # The following logic allows an early break if all peers finished generating their sequence
+@@ -3496,7 +3518,7 @@ class GenerationMixin:
+ 
+             # increase cur_len
+             cur_len = cur_len + 1
+-
++            latency_list.append(time.time() - tic)
+             if beam_scorer.is_done or stopping_criteria(input_ids, scores):
+                 if not synced_gpus:
+                     break
+@@ -3748,7 +3770,9 @@ class GenerationMixin:
+         this_peer_finished = False  # used by synced_gpus only
+ 
+         decoder_prompt_len = input_ids.shape[-1]  # record the prompt length of decoder
++        latency_list = []
+         while True:
++            tic = time.time()
+             if synced_gpus:
+                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
+                 # The following logic allows an early break if all peers finished generating their sequence
+@@ -3892,7 +3916,7 @@ class GenerationMixin:
+ 
+             # increase cur_len
+             cur_len = cur_len + 1
+-
++            latency_list.append(time.time() - tic)
+             if beam_scorer.is_done or stopping_criteria(input_ids, scores):
+                 if not synced_gpus:
+                     break
+@@ -4147,7 +4171,9 @@ class GenerationMixin:
+         this_peer_finished = False  # used by synced_gpus only
+ 
+         decoder_prompt_len = input_ids.shape[-1]  # record the prompt length of decoder
++        latency_list = []
+         while True:
++            tic = time.time()
+             if synced_gpus:
+                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
+                 # The following logic allows an early break if all peers finished generating their sequence
+@@ -4486,7 +4512,9 @@ class GenerationMixin:
+         max_len = stopping_criteria[0].max_length
+ 
+         this_peer_finished = False  # used by synced_gpus only
++        latency_list = []
+         while True:
++            tic = time.time()
+             if synced_gpus:
+                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
+                 # The following logic allows an early break if all peers finished generating their sequence
